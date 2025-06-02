@@ -1,0 +1,17 @@
+Task:
+
+You are selecting a database for a new application. You have the following requirements:
+Social platform with millions of users
+Need to store profiles, posts, and connections between users
+High data read speed required
+Expected 80% read operations, 20% write operations
+Scalability is important as the user base grows
+
+
+You task is
+Analyze a given set of project requirements
+Justify and select the most suitable type of database for the project.
+
+Take a deep breath.
+Think step by step and select most suitable type of database for the project.
+Clearly showing how the decision was made. Make a well-structured answer
