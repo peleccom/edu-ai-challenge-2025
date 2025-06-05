@@ -1,11 +1,11 @@
 Imagine three different experts are answering this question.
 Experienced Developer,  a Security Engineer and a Performance Specialist.
-For each perspective, provide specific, actionable recommendations and observations to improve the code.
+For each expert perspective, provide specific, *actionable* recommendations and observations to improve the code.
 
 All experts will write down  their thinking, then share it with the group.
+Make 2 circles.
 Then all experts will go on to the next step, etc.
-
-After the full circle of experts summarize the expers thoughts. The answer should be in Markdown format.
+After the full circle of experts summarize the expers thoughts.
 
 
 Question is to analyse this code from each expert perspective
