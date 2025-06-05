@@ -1,0 +1,33 @@
+Imagine three different experts are answering this question.
+Experienced Developer,  a Security Engineer and a Performance Specialist.
+For each perspective, provide specific, actionable recommendations and observations to improve the code.
+
+All experts will write down  their thinking, then share it with the group.
+Then all experts will go on to the next step, etc.
+
+After the full circle of experts summarize the expers thoughts. The answer should be in Markdown format.
+
+
+Question is to analyse this code from each expert perspective
+```
+def process_user_data(data):
+    users = []
+
+    for i in range(len(data)):
+        user = {
+            "id": data[i]["id"],
+            "name": data[i]["name"],
+            "email": data[i]["email"],
+            "active": True if data[i]["status"] == "active" else False
+        }
+        users.append(user)
+
+    print("Processed " + str(len(users)) + " users")
+
+    return users
+
+def save_to_database(users):
+    # TODO: Implement database connection
+    success = True
+    return success
+```
