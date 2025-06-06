@@ -1,0 +1,47 @@
+[
+    {
+        "sentiment": "Negative",
+        "isRelevant": true,
+        "mainSubject": "Sensor reliability and dongle malfunction",
+        "positives": [],
+        "painPoints": [
+          "Sensor intermittently stops tracking",
+          "Tracking issue persists even when plugged in",
+          "Initial unit had a non-functional dongle",
+          "High price not justified by performance"
+        ],
+        "improvementSuggestions": [
+          "Improve sensor stability at high polling rates",
+          "Ensure better quality control for wireless dongle functionality",
+          "Enhance reliability regardless of connection type"
+        ],
+        "featuresMentioned": [
+          "Sensor",
+          "Polling rate (8000Hz)",
+          "Dongle",
+          "Wired and wireless performance",
+          "Price"
+        ],
+        "userExpertise": "Experienced"
+      },
+      {
+        "sentiment": "Mixed",
+        "isRelevant": true,
+        "mainSubject": "Value for money",
+        "positives": [
+          "No major flaws in functionality"
+        ],
+        "painPoints": [
+          "Price is too high relative to performance"
+        ],
+        "improvementSuggestions": [
+          "Reduce price or add more differentiating features to justify premium"
+        ],
+        "featuresMentioned": [
+          "Price",
+          "Performance"
+        ],
+        "userExpertise": "Experienced"
+      }
+
+]
