@@ -1,0 +1,35 @@
+{
+  "name": "enigma-machine",
+  "version": "1.0.0",
+  "description": "A Node.js implementation of the Enigma machine cipher",
+  "main": "enigma.js",
+  "scripts": {
+    "test": "node enigma.js --test",
+    "test:coverage": "c8 node enigma.js --test",
+    "test:coverage:html": "c8 --reporter=html node enigma.js --test",
+    "test:coverage:lcov": "c8 --reporter=lcov node enigma.js --test",
+    "test:coverage:all": "c8 --reporter=html --reporter=text --reporter=lcov node enigma.js --test"
+  },
+  "keywords": ["enigma", "cipher", "cryptography", "encryption"],
+  "author": "Enigma Project",
+  "license": "MIT",
+  "devDependencies": {
+    "c8": "^8.0.1"
+  },
+  "c8": {
+    "exclude": [
+      "coverage/**",
+      "test/**",
+      "*.config.js"
+    ],
+    "reporter": [
+      "text",
+      "html"
+    ],
+    "check-coverage": true,
+    "lines": 70,
+    "functions": 70,
+    "branches": 70,
+    "statements": 70
+  }
+} 

@@ -1,0 +1,49 @@
+
+> enigma-machine@1.0.0 test:coverage
+> c8 node enigma.js --test
+
+Running Enigma Machine Tests...
+
+Test 1: Basic encryption/decryption without plugboard
+Original: HELLO
+Encrypted: VNACA
+Decrypted: HELLO
+Test 1 PASSED
+
+Test 2: Encryption/decryption with plugboard
+Original: ABCD
+Encrypted: IHML
+Decrypted: ABCD
+Test 2 PASSED
+
+Test 3: Different initial positions
+Original: WORLD
+Encrypted: TNUMR
+Decrypted: WORLD
+Test 3 PASSED
+
+Test 4: Ring settings
+Original: TEST
+Encrypted: OGWJ
+Decrypted: TEST
+Test 4 PASSED
+
+Test 5: Long message (rotor stepping)
+Original: THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG
+Encrypted: ZAWWCXVDEUWKHRZUDZAIPWNYHEGOIPONLUO
+Decrypted: THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG
+Test 5 PASSED
+
+Test 6: Non-alphabetic characters
+Original: HELLO, WORLD! 123
+Encrypted: VNACA, DJZRA! 123
+Decrypted: HELLO, WORLD! 123
+Test 6 PASSED
+
+All tests completed!
+-----------|---------|----------|---------|---------|-----------------------
+File       | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s     
+-----------|---------|----------|---------|---------|-----------------------
+All files  |   85.93 |    77.14 |    92.3 |   85.93 |                       
+ enigma.js |   85.93 |    77.14 |    92.3 |   85.93 | 95-97,136-166,252-253 
+-----------|---------|----------|---------|---------|-----------------------
