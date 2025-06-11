@@ -164,7 +164,8 @@ seabattle-game/
 ├── package.json        # Project dependencies and scripts
 ├── package-lock.json   # Locked dependency versions
 ├── README.md          # Project documentation
-├── seabattle.js       # Main game implementation
+├── refactoring.md     # Refactoring process documentation
+├── seabattle.js       # Main game implementation (modernized)
 ├── seabattle.test.js  # Unit tests
 ├── coverage/          # Test coverage reports (generated)
 └── node_modules/      # Dependencies (ignored by git)

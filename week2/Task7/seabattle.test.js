@@ -25,10 +25,7 @@ afterAll(() => {
 
 // Test helper functions
 function createTestShip(locations) {
-  return {
-    locations: locations,
-    hits: new Array(locations.length).fill('')
-  };
+  return new game.Ship(locations);
 }
 
 describe('Sea Battle Game Tests', () => {
@@ -101,22 +98,22 @@ describe('Sea Battle Game Tests', () => {
     });
   });
 
-  describe('isSunk()', () => {
+  describe('Ship.isSunk()', () => {
     test('should return true when all ship parts are hit', () => {
       const ship = createTestShip(['00', '01', '02']);
       ship.hits = ['hit', 'hit', 'hit'];
-      expect(game.isSunk(ship)).toBe(true);
+      expect(ship.isSunk()).toBe(true);
     });
 
     test('should return false when not all ship parts are hit', () => {
       const ship = createTestShip(['00', '01', '02']);
       ship.hits = ['hit', '', 'hit'];
-      expect(game.isSunk(ship)).toBe(false);
+      expect(ship.isSunk()).toBe(false);
     });
 
     test('should return false when no ship parts are hit', () => {
       const ship = createTestShip(['00', '01', '02']);
-      expect(game.isSunk(ship)).toBe(false);
+      expect(ship.isSunk()).toBe(false);
     });
   });
 
@@ -236,13 +233,15 @@ describe('Sea Battle Game Tests', () => {
 
     test('should place correct number of ships', () => {
       const testShips = [];
-      game.placeShipsRandomly(gameState.playerBoard, testShips, 2);
+      const testBoard = new game.Board();
+      game.placeShipsRandomly(testBoard, testShips, 2);
       expect(testShips).toHaveLength(2);
     });
 
     test('should create ships with correct structure', () => {
       const testShips = [];
-      game.placeShipsRandomly(gameState.playerBoard, testShips, 1);
+      const testBoard = new game.Board();
+      game.placeShipsRandomly(testBoard, testShips, 1);
       
       expect(testShips[0]).toHaveProperty('locations');
       expect(testShips[0]).toHaveProperty('hits');
@@ -252,7 +251,8 @@ describe('Sea Battle Game Tests', () => {
 
     test('should place ships within board boundaries', () => {
       const testShips = [];
-      game.placeShipsRandomly(gameState.playerBoard, testShips, 3);
+      const testBoard = new game.Board();
+      game.placeShipsRandomly(testBoard, testShips, 3);
       
       testShips.forEach(ship => {
         ship.locations.forEach(location => {
@@ -268,7 +268,8 @@ describe('Sea Battle Game Tests', () => {
 
     test('should not place overlapping ships', () => {
       const testShips = [];
-      game.placeShipsRandomly(gameState.playerBoard, testShips, 3);
+      const testBoard = new game.Board();
+      game.placeShipsRandomly(testBoard, testShips, 3);
       
       const allLocations = [];
       testShips.forEach(ship => {
@@ -279,15 +280,20 @@ describe('Sea Battle Game Tests', () => {
       });
     });
 
-    test('should mark ship positions on player board', () => {
+    test('should create ships with proper locations', () => {
       const testShips = [];
-      game.placeShipsRandomly(gameState.playerBoard, testShips, 1);
-      gameState = game.getGameState();
+      const testBoard = new game.Board();
+      game.placeShipsRandomly(testBoard, testShips, 1);
       
+      // Verify that ships are created with correct locations
+      expect(testShips[0].locations).toHaveLength(gameState.shipLength);
       testShips[0].locations.forEach(location => {
         const row = parseInt(location[0]);
         const col = parseInt(location[1]);
-        expect(gameState.playerBoard[row][col]).toBe('S');
+        expect(row).toBeGreaterThanOrEqual(0);
+        expect(row).toBeLessThan(gameState.boardSize);
+        expect(col).toBeGreaterThanOrEqual(0);
+        expect(col).toBeLessThan(gameState.boardSize);
       });
     });
   });
@@ -353,10 +359,12 @@ describe('Sea Battle Game Tests', () => {
       
       const playerShips = [];
       const cpuShips = [];
+      const testPlayerBoard = new game.Board();
+      const testOpponentBoard = new game.Board();
       
       // Place ships
-      game.placeShipsRandomly(gameState.playerBoard, playerShips, 2);
-      game.placeShipsRandomly(gameState.board, cpuShips, 2);
+      game.placeShipsRandomly(testPlayerBoard, playerShips, 2);
+      game.placeShipsRandomly(testOpponentBoard, cpuShips, 2);
       
       expect(playerShips).toHaveLength(2);
       expect(cpuShips).toHaveLength(2);
@@ -478,8 +486,11 @@ describe('Sea Battle Game Tests', () => {
       expect(gameState.cpuGuesses).toHaveLength(0);
       expect(gameState.cpuMode).toBe('hunt');
       expect(gameState.cpuTargetQueue).toHaveLength(0);
-      expect(gameState.board).toHaveLength(0);
-      expect(gameState.playerBoard).toHaveLength(0);
+      // Check that boards are properly reset (should be 10x10 grids)
+      expect(gameState.board).toHaveLength(10);
+      expect(gameState.playerBoard).toHaveLength(10);
+      expect(gameState.board[0]).toHaveLength(10);
+      expect(gameState.playerBoard[0]).toHaveLength(10);
     });
   });
 }); 

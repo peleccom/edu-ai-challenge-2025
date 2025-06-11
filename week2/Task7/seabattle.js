@@ -1,46 +1,109 @@
-var readline = require('readline');
+const readline = require('readline');
 
-var boardSize = 10;
-var numShips = 3;
-var shipLength = 3;
+const boardSize = 10;
+const numShips = 3;
+const shipLength = 3;
 
-var playerShips = [];
-var cpuShips = [];
-var playerNumShips = numShips;
-var cpuNumShips = numShips;
+// Ship class to encapsulate ship behavior
+class Ship {
+  constructor(locations) {
+    this.locations = locations;
+    this.hits = new Array(locations.length).fill('');
+  }
+  
+  isHit(location) {
+    return this.locations.includes(location);
+  }
+  
+  hit(location) {
+    const index = this.locations.indexOf(location);
+    if (index >= 0) {
+      this.hits[index] = 'hit';
+      return true;
+    }
+    return false;
+  }
+  
+  isSunk() {
+    return this.hits.every(hit => hit === 'hit');
+  }
+  
+  isAlreadyHit(location) {
+    const index = this.locations.indexOf(location);
+    return index >= 0 && this.hits[index] === 'hit';
+  }
+}
 
-var guesses = [];
-var cpuGuesses = [];
-var cpuMode = 'hunt';
-var cpuTargetQueue = [];
+// Board class to manage board state and operations
+class Board {
+  constructor(size = boardSize) {
+    this.size = size;
+    this.grid = this.createGrid();
+  }
+  
+  createGrid() {
+    const grid = [];
+    for (let i = 0; i < this.size; i++) {
+      grid[i] = [];
+      for (let j = 0; j < this.size; j++) {
+        grid[i][j] = '~';
+      }
+    }
+    return grid;
+  }
+  
+  markHit(row, col) {
+    this.grid[row][col] = 'X';
+  }
+  
+  markMiss(row, col) {
+    this.grid[row][col] = 'O';
+  }
+  
+  markShip(row, col) {
+    this.grid[row][col] = 'S';
+  }
+  
+  isValidPosition(row, col) {
+    return row >= 0 && row < this.size && col >= 0 && col < this.size;
+  }
+  
+  isCellEmpty(row, col) {
+    return this.grid[row][col] === '~';
+  }
+}
 
-var board = [];
-var playerBoard = [];
+let playerShips = [];
+let cpuShips = [];
+let playerNumShips = numShips;
+let cpuNumShips = numShips;
 
-var rl = readline.createInterface({
+let guesses = [];
+let cpuGuesses = [];
+let cpuMode = 'hunt';
+let cpuTargetQueue = [];
+
+let opponentBoard = new Board();
+let playerBoard = new Board();
+
+const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
 function createBoard() {
-  for (var i = 0; i < boardSize; i++) {
-    board[i] = [];
-    playerBoard[i] = [];
-    for (var j = 0; j < boardSize; j++) {
-      board[i][j] = '~';
-      playerBoard[i][j] = '~';
-    }
-  }
+  opponentBoard = new Board();
+  playerBoard = new Board();
   console.log('Boards created.');
 }
 
 function placeShipsRandomly(targetBoard, shipsArray, numberOfShips) {
-  var placedShips = 0;
+  let placedShips = 0;
   while (placedShips < numberOfShips) {
-    var orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
-    var startRow, startCol;
-    var shipLocations = [];
-    var collision = false;
+    const orientation = Math.random() < 0.5 ? 'horizontal' : 'vertical';
+    let startRow, startCol;
+    let shipLocations = [];
+    let collision = false;
 
     if (orientation === 'horizontal') {
       startRow = Math.floor(Math.random() * boardSize);
@@ -50,79 +113,77 @@ function placeShipsRandomly(targetBoard, shipsArray, numberOfShips) {
       startCol = Math.floor(Math.random() * boardSize);
     }
 
-    var tempLocations = [];
-    for (var i = 0; i < shipLength; i++) {
-      var checkRow = startRow;
-      var checkCol = startCol;
+    const tempLocations = [];
+    for (let i = 0; i < shipLength; i++) {
+      let checkRow = startRow;
+      let checkCol = startCol;
       if (orientation === 'horizontal') {
         checkCol += i;
       } else {
         checkRow += i;
       }
-      var locationStr = String(checkRow) + String(checkCol);
+      const locationStr = `${checkRow}${checkCol}`;
       tempLocations.push(locationStr);
 
-      if (checkRow >= boardSize || checkCol >= boardSize) {
+      if (!targetBoard.isValidPosition(checkRow, checkCol)) {
         collision = true;
         break;
       }
 
-      if (targetBoard[checkRow][checkCol] !== '~') {
+      if (!targetBoard.isCellEmpty(checkRow, checkCol)) {
         collision = true;
         break;
       }
     }
 
     if (!collision) {
-      var newShip = { locations: [], hits: [] };
-      for (var i = 0; i < shipLength; i++) {
-        var placeRow = startRow;
-        var placeCol = startCol;
+      const shipLocations = [];
+      for (let i = 0; i < shipLength; i++) {
+        let placeRow = startRow;
+        let placeCol = startCol;
         if (orientation === 'horizontal') {
           placeCol += i;
         } else {
           placeRow += i;
         }
-        var locationStr = String(placeRow) + String(placeCol);
-        newShip.locations.push(locationStr);
-        newShip.hits.push('');
+        const locationStr = `${placeRow}${placeCol}`;
+        shipLocations.push(locationStr);
 
         if (targetBoard === playerBoard) {
-          targetBoard[placeRow][placeCol] = 'S';
+          targetBoard.markShip(placeRow, placeCol);
         }
       }
+      const newShip = new Ship(shipLocations);
       shipsArray.push(newShip);
       placedShips++;
     }
   }
   console.log(
-    numberOfShips +
-      ' ships placed randomly for ' +
-      (targetBoard === playerBoard ? 'Player.' : 'CPU.'),
+    `${numberOfShips} ships placed randomly for ${targetBoard === playerBoard ? 'Player' : 'CPU'}.`
   );
 }
 
-function printBoard() {
+const printBoard = () => {
   console.log('\n   --- OPPONENT BOARD ---          --- YOUR BOARD ---');
-  var header = '  ';
-  for (var h = 0; h < boardSize; h++) header += h + ' ';
-  console.log(header + '     ' + header);
+  let header = '  ';
+  for (let h = 0; h < boardSize; h++) header += h + ' ';
+  console.log(`${header}     ${header}`);
 
-  for (var i = 0; i < boardSize; i++) {
-    var rowStr = i + ' ';
+  for (let i = 0; i < boardSize; i++) {
+    let rowStr = `${i} `;
 
-    for (var j = 0; j < boardSize; j++) {
-      rowStr += board[i][j] + ' ';
+    for (let j = 0; j < boardSize; j++) {
+      rowStr += `${opponentBoard.grid[i][j]} `;
     }
-    rowStr += '    ' + i + ' ';
+    rowStr += `    ${i} `;
 
-    for (var j = 0; j < boardSize; j++) {
-      rowStr += playerBoard[i][j] + ' ';
+    for (let j = 0; j < boardSize; j++) {
+      rowStr += `${playerBoard.grid[i][j]} `;
     }
     console.log(rowStr);
   }
   console.log('\n');
-}
+};
 
 function processPlayerGuess(guess) {
   if (guess === null || guess.length !== 2) {
@@ -130,8 +191,8 @@ function processPlayerGuess(guess) {
     return false;
   }
 
-  var row = parseInt(guess[0]);
-  var col = parseInt(guess[1]);
+  const row = parseInt(guess[0]);
+  const col = parseInt(guess[1]);
 
   if (
     isNaN(row) ||
@@ -142,82 +203,79 @@ function processPlayerGuess(guess) {
     col >= boardSize
   ) {
     console.log(
-      'Oops, please enter valid row and column numbers between 0 and ' +
-        (boardSize - 1) +
-        '.',
+      `Oops, please enter valid row and column numbers between 0 and ${boardSize - 1}.`
     );
     return false;
   }
 
-  var formattedGuess = guess;
+  const formattedGuess = guess;
 
-  if (guesses.indexOf(formattedGuess) !== -1) {
+  if (guesses.includes(formattedGuess)) {
     console.log('You already guessed that location!');
     return false;
   }
   guesses.push(formattedGuess);
 
-  var hit = false;
+  let hit = false;
 
-  for (var i = 0; i < cpuShips.length; i++) {
-    var ship = cpuShips[i];
-    var index = ship.locations.indexOf(formattedGuess);
+  for (let i = 0; i < cpuShips.length; i++) {
+    const ship = cpuShips[i];
 
-    if (index >= 0 && ship.hits[index] !== 'hit') {
-      ship.hits[index] = 'hit';
-      board[row][col] = 'X';
+    if (ship.isAlreadyHit(formattedGuess)) {
+      console.log('You already hit that spot!');
+      hit = true;
+      break;
+    } else if (ship.isHit(formattedGuess)) {
+      ship.hit(formattedGuess);
+      opponentBoard.markHit(row, col);
       console.log('PLAYER HIT!');
       hit = true;
 
-      if (isSunk(ship)) {
+      if (ship.isSunk()) {
         console.log('You sunk an enemy battleship!');
         cpuNumShips--;
       }
-      break;
-    } else if (index >= 0 && ship.hits[index] === 'hit') {
-      console.log('You already hit that spot!');
-      hit = true;
       break;
     }
   }
 
   if (!hit) {
-    board[row][col] = 'O';
+    opponentBoard.markMiss(row, col);
     console.log('PLAYER MISS.');
   }
 
   return true;
 }
 
-function isValidAndNewGuess(row, col, guessList) {
+const isValidAndNewGuess = (row, col, guessList) => {
   if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) {
     return false;
   }
-  var guessStr = String(row) + String(col);
-  return guessList.indexOf(guessStr) === -1;
-}
+  const guessStr = `${row}${col}`;
+  return !guessList.includes(guessStr);
+};
 
 function cpuTurn() {
   console.log("\n--- CPU's Turn ---");
-  var guessRow, guessCol, guessStr;
-  var madeValidGuess = false;
+  let guessRow, guessCol, guessStr;
+  let madeValidGuess = false;
 
   while (!madeValidGuess) {
     if (cpuMode === 'target' && cpuTargetQueue.length > 0) {
       guessStr = cpuTargetQueue.shift();
       guessRow = parseInt(guessStr[0]);
       guessCol = parseInt(guessStr[1]);
-      console.log('CPU targets: ' + guessStr);
+      console.log(`CPU targets: ${guessStr}`);
 
-      if (cpuGuesses.indexOf(guessStr) !== -1) {
-        if (cpuTargetQueue.length === 0) cpuMode = 'hunt';
-        continue;
-      }
+              if (cpuGuesses.includes(guessStr)) {
+          if (cpuTargetQueue.length === 0) cpuMode = 'hunt';
+          continue;
+        }
     } else {
       cpuMode = 'hunt';
       guessRow = Math.floor(Math.random() * boardSize);
       guessCol = Math.floor(Math.random() * boardSize);
-      guessStr = String(guessRow) + String(guessCol);
+      guessStr = `${guessRow}${guessCol}`;
 
       if (!isValidAndNewGuess(guessRow, guessCol, cpuGuesses)) {
         continue;
@@ -227,18 +285,17 @@ function cpuTurn() {
     madeValidGuess = true;
     cpuGuesses.push(guessStr);
 
-    var hit = false;
-    for (var i = 0; i < playerShips.length; i++) {
-      var ship = playerShips[i];
-      var index = ship.locations.indexOf(guessStr);
+    let hit = false;
+    for (let i = 0; i < playerShips.length; i++) {
+      const ship = playerShips[i];
 
-      if (index >= 0) {
-        ship.hits[index] = 'hit';
-        playerBoard[guessRow][guessCol] = 'X';
-        console.log('CPU HIT at ' + guessStr + '!');
+      if (ship.isHit(guessStr)) {
+        ship.hit(guessStr);
+        playerBoard.markHit(guessRow, guessCol);
+        console.log(`CPU HIT at ${guessStr}!`);
         hit = true;
 
-        if (isSunk(ship)) {
+        if (ship.isSunk()) {
           console.log('CPU sunk your battleship!');
           playerNumShips--;
 
@@ -246,19 +303,19 @@ function cpuTurn() {
           cpuTargetQueue = [];
         } else {
           cpuMode = 'target';
-          var adjacent = [
+          const adjacent = [
             { r: guessRow - 1, c: guessCol },
             { r: guessRow + 1, c: guessCol },
             { r: guessRow, c: guessCol - 1 },
             { r: guessRow, c: guessCol + 1 },
           ];
-          for (var adj of adjacent) {
-            if (isValidAndNewGuess(adj.r, adj.c, cpuGuesses)) {
-              var adjStr = String(adj.r) + String(adj.c);
+          for (const adj of adjacent) {
+                          if (isValidAndNewGuess(adj.r, adj.c, cpuGuesses)) {
+                const adjStr = `${adj.r}${adj.c}`;
 
-              if (cpuTargetQueue.indexOf(adjStr) === -1) {
-                cpuTargetQueue.push(adjStr);
-              }
+                if (!cpuTargetQueue.includes(adjStr)) {
+                  cpuTargetQueue.push(adjStr);
+                }
             }
           }
         }
@@ -267,8 +324,8 @@ function cpuTurn() {
     }
 
     if (!hit) {
-      playerBoard[guessRow][guessCol] = 'O';
-      console.log('CPU MISS at ' + guessStr + '.');
+      playerBoard.markMiss(guessRow, guessCol);
+      console.log(`CPU MISS at ${guessStr}.`);
 
       if (cpuMode === 'target' && cpuTargetQueue.length === 0) {
         cpuMode = 'hunt';
@@ -277,14 +334,7 @@ function cpuTurn() {
   }
 }
 
-function isSunk(ship) {
-  for (var i = 0; i < shipLength; i++) {
-    if (ship.hits[i] !== 'hit') {
-      return false;
-    }
-  }
-  return true;
-}
+
 
 function gameLoop() {
   if (cpuNumShips === 0) {
@@ -302,7 +352,7 @@ function gameLoop() {
 
   printBoard();
   rl.question('Enter your guess (e.g., 00): ', function (answer) {
-    var playerGuessed = processPlayerGuess(answer);
+    const playerGuessed = processPlayerGuess(answer);
 
     if (playerGuessed) {
       if (cpuNumShips === 0) {
@@ -327,30 +377,33 @@ if (require.main === module) {
   createBoard();
 
   placeShipsRandomly(playerBoard, playerShips, playerNumShips);
-  placeShipsRandomly(board, cpuShips, cpuNumShips);
+  placeShipsRandomly(opponentBoard, cpuShips, cpuNumShips);
 
   console.log("\nLet's play Sea Battle!");
-  console.log('Try to sink the ' + cpuNumShips + ' enemy ships.');
+  console.log(`Try to sink the ${cpuNumShips} enemy ships.`);
   gameLoop();
 }
 
 // Export functions and variables for testing
 module.exports = {
+  // Classes
+  Ship,
+  Board,
+  
   // Functions
   createBoard,
   placeShipsRandomly,
   processPlayerGuess,
   isValidAndNewGuess,
   cpuTurn,
-  isSunk,
   gameLoop,
   printBoard,
   
   // Getters for game state variables
   getGameState: function() {
     return {
-      board,
-      playerBoard,
+      board: opponentBoard.grid,
+      playerBoard: playerBoard.grid,
       playerShips,
       cpuShips,
       guesses,
@@ -375,7 +428,7 @@ module.exports = {
     cpuGuesses.length = 0;
     cpuMode = 'hunt';
     cpuTargetQueue.length = 0;
-    board.length = 0;
-    playerBoard.length = 0;
+    opponentBoard = new Board();
+    playerBoard = new Board();
   }
 };
