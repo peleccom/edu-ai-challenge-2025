@@ -14,7 +14,8 @@
   "jest": {
     "testEnvironment": "node",
     "collectCoverageFrom": [
-      "seabattle.js"
+      "seabattle.js",
+      "src/**/*.js"
     ],
     "coverageReporters": ["text", "lcov", "html"],
     "coverageThreshold": {
