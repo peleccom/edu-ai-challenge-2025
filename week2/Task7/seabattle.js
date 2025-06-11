@@ -322,11 +322,60 @@ function gameLoop() {
   });
 }
 
-createBoard();
+// Only run the game if this file is executed directly (not imported as a module)
+if (require.main === module) {
+  createBoard();
 
-placeShipsRandomly(playerBoard, playerShips, playerNumShips);
-placeShipsRandomly(board, cpuShips, cpuNumShips);
+  placeShipsRandomly(playerBoard, playerShips, playerNumShips);
+  placeShipsRandomly(board, cpuShips, cpuNumShips);
 
-console.log("\nLet's play Sea Battle!");
-console.log('Try to sink the ' + cpuNumShips + ' enemy ships.');
-gameLoop();
+  console.log("\nLet's play Sea Battle!");
+  console.log('Try to sink the ' + cpuNumShips + ' enemy ships.');
+  gameLoop();
+}
+
+// Export functions and variables for testing
+module.exports = {
+  // Functions
+  createBoard,
+  placeShipsRandomly,
+  processPlayerGuess,
+  isValidAndNewGuess,
+  cpuTurn,
+  isSunk,
+  gameLoop,
+  printBoard,
+  
+  // Getters for game state variables
+  getGameState: function() {
+    return {
+      board,
+      playerBoard,
+      playerShips,
+      cpuShips,
+      guesses,
+      cpuGuesses,
+      boardSize,
+      shipLength,
+      numShips,
+      playerNumShips,
+      cpuNumShips,
+      cpuMode,
+      cpuTargetQueue
+    };
+  },
+  
+  // Reset function for testing
+  resetGame: function() {
+    playerShips.length = 0;
+    cpuShips.length = 0;
+    playerNumShips = numShips;
+    cpuNumShips = numShips;
+    guesses.length = 0;
+    cpuGuesses.length = 0;
+    cpuMode = 'hunt';
+    cpuTargetQueue.length = 0;
+    board.length = 0;
+    playerBoard.length = 0;
+  }
+};
