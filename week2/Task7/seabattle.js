@@ -149,15 +149,26 @@ function placeShipsRandomly(targetBoard, shipsArray, numberOfShips) {
         const locationStr = `${placeRow}${placeCol}`;
         shipLocations.push(locationStr);
 
-        if (targetBoard === playerBoard) {
-          targetBoard.markShip(placeRow, placeCol);
-        }
+        // Always mark ship positions for collision detection
+        targetBoard.markShip(placeRow, placeCol);
       }
       const newShip = new Ship(shipLocations);
       shipsArray.push(newShip);
       placedShips++;
     }
   }
+  
+  // If this is the opponent board, unmark ships to keep them hidden
+  if (targetBoard !== playerBoard) {
+    shipsArray.forEach(ship => {
+      ship.locations.forEach(location => {
+        const row = parseInt(location[0]);
+        const col = parseInt(location[1]);
+        targetBoard.grid[row][col] = '~';
+      });
+    });
+  }
+  
   console.log(
     `${numberOfShips} ships placed randomly for ${targetBoard === playerBoard ? 'Player' : 'CPU'}.`
   );
