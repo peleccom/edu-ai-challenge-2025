@@ -1,4 +1,4 @@
-import { Schema } from './schema';
+import { Schema } from '../src/schema';
 
 /**
  * Example demonstrating various validation patterns

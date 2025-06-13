@@ -310,7 +310,19 @@ class DateValidator implements Validator<Date> {
    * @returns Validation result
    */
   validate(value: unknown): ValidationResult<Date> {
-    const date = value instanceof Date ? value : new Date(value as string);
+    let date: Date;
+    
+    // Only accept Date objects or strings
+    if (value instanceof Date) {
+      date = value;
+    } else if (typeof value === 'string') {
+      date = new Date(value);
+    } else {
+      return {
+        success: false,
+        error: this.customMessage || 'Value must be a valid date'
+      };
+    }
     
     if (isNaN(date.getTime())) {
       return {
