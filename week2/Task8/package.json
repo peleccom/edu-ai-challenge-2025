@@ -1,0 +1,22 @@
+{
+  "name": "type-safe-validator",
+  "version": "1.0.0",
+  "description": "A comprehensive type-safe validation library for TypeScript",
+  "main": "dist/schema.js",
+  "types": "dist/schema.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node schema.ts",
+    "example": "ts-node example.ts",
+    "demo": "ts-node schema.ts",
+    "test": "node dist/schema.js"
+  },
+  "keywords": ["validation", "typescript", "type-safe", "schema"],
+  "author": "Developer",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  }
+} 
