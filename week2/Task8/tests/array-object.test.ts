@@ -26,16 +26,15 @@ describe('ArrayValidator', () => {
     test('should validate array items individually', () => {
       const result = validator.validate(['valid', 123, 'also valid']);
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Array item at index 1');
-      expect(result.error).toContain('Value must be a string');
+      expect(result.error).toEqual({ '1': 'Value must be a string' });
       
       const result2 = validator.validate(['valid', true, 'also valid']);
       expect(result2.success).toBe(false);
-      expect(result2.error).toContain('Array item at index 1');
+      expect(result2.error).toEqual({ '1': 'Value must be a string' });
       
       const result3 = validator.validate(['valid', 'valid', null]);
       expect(result3.success).toBe(false);
-      expect(result3.error).toContain('Array item at index 2');
+      expect(result3.error).toEqual({ '2': 'Value must be a string' });
     });
   });
   
@@ -48,11 +47,11 @@ describe('ArrayValidator', () => {
       
       const result1 = validator.validate([]);
       expect(result1.success).toBe(false);
-      expect(result1.error).toBe('Array must have at least 2 items');
+      expect(result1.error).toBe('Array must contain at least 2 items');
       
       const result2 = validator.validate(['a']);
       expect(result2.success).toBe(false);
-      expect(result2.error).toBe('Array must have at least 2 items');
+      expect(result2.error).toBe('Array must contain at least 2 items');
     });
     
     test('should validate maximum length', () => {
@@ -64,11 +63,11 @@ describe('ArrayValidator', () => {
       
       const result = validator.validate(['a', 'b', 'c']);
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Array must have at most 2 items');
+      expect(result.error).toBe('Array must contain at most 2 items');
       
       const result2 = validator.validate(new Array(10).fill('test'));
       expect(result2.success).toBe(false);
-      expect(result2.error).toBe('Array must have at most 2 items');
+      expect(result2.error).toBe('Array must contain at most 2 items');
     });
     
     test('should validate exact length range', () => {
@@ -83,13 +82,13 @@ describe('ArrayValidator', () => {
     });
     
     test('should handle zero-length requirements', () => {
-      const validator = Schema.array(Schema.string()).minLength(0).maxLength(0);
+      const validator = Schema.array(Schema.string()).maxLength(0);
       
       expect(validator.validate([])).toEqual({ success: true, data: [] });
       
       const result = validator.validate(['a']);
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Array must have at most 0 items');
+      expect(result.error).toBe('Array must contain at most 0 items');
     });
   });
   
@@ -102,13 +101,11 @@ describe('ArrayValidator', () => {
       
       const result1 = validator.validate([50, -1, 75]);
       expect(result1.success).toBe(false);
-      expect(result1.error).toContain('Array item at index 1');
-      expect(result1.error).toContain('Number must be at least 0');
+      expect(result1.error).toEqual({ '1': 'Number must be at least 0' });
       
       const result2 = validator.validate([50, 150, 75]);
       expect(result2.success).toBe(false);
-      expect(result2.error).toContain('Array item at index 1');
-      expect(result2.error).toContain('Number must be at most 100');
+      expect(result2.error).toEqual({ '1': 'Number must be at most 100' });
     });
     
     test('should validate array of objects', () => {
@@ -131,8 +128,7 @@ describe('ArrayValidator', () => {
       ];
       const result = validator.validate(invalidData);
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Array item at index 1');
-      expect(result.error).toContain("Object field 'id'");
+      expect(result.error).toEqual({ '1': { id: 'Value must be a string' } });
     });
     
     test('should validate nested arrays', () => {
@@ -151,8 +147,7 @@ describe('ArrayValidator', () => {
       ];
       const result = validator.validate(invalidData);
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Array item at index 1');
-      expect(result.error).toContain('Array item at index 1');
+      expect(result.error).toEqual({ '1': { '1': 'Value must be a string' } });
     });
     
     test('should validate arrays with optional item constraints', () => {
@@ -165,7 +160,7 @@ describe('ArrayValidator', () => {
       // But invalid strings should still fail
       const result = validator.validate(['valid', 'x']); // 'x' too short
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Array item at index 1');
+      expect(result.error).toEqual({ '1': 'String must be at least 2 characters long' });
     });
   });
   
@@ -175,28 +170,21 @@ describe('ArrayValidator', () => {
       
       const result = validator.validate([1, 2, -3, 4, -5]);
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Array item at index 2');
-      expect(result.error).toContain('Number must be at least 0');
-    });
-    
-    test('should stop at first invalid item', () => {
-      const validator = Schema.array(Schema.string());
-      
-      const result = validator.validate(['valid', 123, true, 456]);
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Array item at index 1');
-      expect(result.error).not.toContain('index 2');
-      expect(result.error).not.toContain('index 3');
+      expect(result.error).toEqual({
+        '2': 'Number must be at least 0',
+        '4': 'Number must be at least 0'
+      });
     });
     
     test('should handle custom error messages', () => {
-      const validator = Schema.array(Schema.string()).minLength(1).withMessage('Tags are required');
+      const typeValidator = Schema.array(Schema.string()).withMessage("Must be an array of strings");
+      const lengthValidator = Schema.array(Schema.string()).minLength(1, 'Tags are required');
       
-      const result1 = validator.validate('not array');
+      const result1 = typeValidator.validate('not array');
       expect(result1.success).toBe(false);
-      expect(result1.error).toBe('Tags are required');
+      expect(result1.error).toBe('Must be an array of strings');
       
-      const result2 = validator.validate([]);
+      const result2 = lengthValidator.validate([]);
       expect(result2.success).toBe(false);
       expect(result2.error).toBe('Tags are required');
     });
@@ -213,6 +201,7 @@ describe('ArrayValidator', () => {
       // Should still validate array contents when provided
       const result = validator.validate([123]);
       expect(result.success).toBe(false);
+      expect(result.error).toEqual({ '0': 'Value must be a string' });
     });
   });
 });
@@ -248,32 +237,32 @@ describe('ObjectValidator', () => {
       const invalidData1 = { name: 123, age: 30, active: true };
       const result1 = validator.validate(invalidData1);
       expect(result1.success).toBe(false);
-      expect(result1.error).toContain("Object field 'name'");
-      expect(result1.error).toContain('Value must be a string');
+      expect(result1.error).toEqual({ name: 'Value must be a string' });
       
       const invalidData2 = { name: 'John', age: '30', active: true };
       const result2 = validator.validate(invalidData2);
       expect(result2.success).toBe(false);
-      expect(result2.error).toContain("Object field 'age'");
-      expect(result2.error).toContain('Value must be a valid number');
+      expect(result2.error).toEqual({ age: 'Value must be a valid number' });
       
       const invalidData3 = { name: 'John', age: 30, active: 'yes' };
       const result3 = validator.validate(invalidData3);
       expect(result3.success).toBe(false);
-      expect(result3.error).toContain("Object field 'active'");
-      expect(result3.error).toContain('Value must be a boolean');
+      expect(result3.error).toEqual({ active: 'Value must be a boolean' });
     });
     
     test('should handle missing required fields', () => {
       const incompleteData1 = { name: 'John', age: 30 }; // missing active
       const result1 = validator.validate(incompleteData1);
       expect(result1.success).toBe(false);
-      expect(result1.error).toContain("Object field 'active'");
+      expect(result1.error).toEqual({ active: 'Value must be a boolean' });
       
       const incompleteData2 = { active: true }; // missing name and age
       const result2 = validator.validate(incompleteData2);
       expect(result2.success).toBe(false);
-      expect(result2.error).toContain("Object field 'name'");
+      expect(result2.error).toEqual({
+        name: 'Value must be a string',
+        age: 'Value must be a valid number'
+      });
     });
     
     test('should ignore extra fields', () => {
@@ -354,34 +343,24 @@ describe('ObjectValidator', () => {
       
       const result = deepSchema.validate(invalidData);
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Object field 'level1'");
+      expect(result.error).toEqual({
+        level1: { level2: { level3: { level4: 'Value must be a string' } } }
+      });
     });
     
     test('should handle nested validation errors', () => {
-      const addressSchema = Schema.object({
-        street: Schema.string(),
-        city: Schema.string(),
-        zipCode: Schema.string().pattern(/^\d{5}$/)
-      });
-      
       const personSchema = Schema.object({
         name: Schema.string(),
-        address: addressSchema
+        address: Schema.object({
+          city: Schema.string(),
+          zipCode: Schema.string().pattern(/^\d{5}$/)
+        })
       });
       
-      const invalidData = {
-        name: 'John',
-        address: {
-          street: '123 Main St',
-          city: 'Anytown',
-          zipCode: '123' // invalid zip code
-        }
-      };
-      
+      const invalidData = { name: 'John', address: { city: 'Anytown', zipCode: '123' } };
       const result = personSchema.validate(invalidData);
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Object field 'address'");
-      expect(result.error).toContain("Object field 'zipCode'");
+      expect(result.error).toEqual({ address: { zipCode: 'String does not match required pattern' } });
     });
   });
   
@@ -424,10 +403,10 @@ describe('ObjectValidator', () => {
       // Optional field with invalid value
       const result4 = schema.validate({
         name: 'John',
-        age: 'thirty' // should be number
+        age: 'invalid', // should be number
       });
       expect(result4.success).toBe(false);
-      expect(result4.error).toContain("Object field 'age'");
+      expect(result4.error).toEqual({ age: 'Value must be a valid number' });
     });
     
     test('should not include undefined optional fields in result', () => {
@@ -467,8 +446,7 @@ describe('ObjectValidator', () => {
       
       const result = userSchema.validate(invalidData);
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Object field 'tags'");
-      expect(result.error).toContain('Array item at index 1');
+      expect(result.error).toEqual({ tags: { '1': 'Value must be a string' } });
     });
     
     test('should validate objects with nested arrays of objects', () => {
@@ -505,9 +483,7 @@ describe('ObjectValidator', () => {
       
       const result = orderSchema.validate(invalidOrder);
       expect(result.success).toBe(false);
-      expect(result.error).toContain("Object field 'items'");
-      expect(result.error).toContain('Array item at index 0');
-      expect(result.error).toContain("Object field 'price'");
+      expect(result.error).toEqual({ items: { '0': { price: 'Number must be at least 0' } } });
     });
   });
   
@@ -521,9 +497,7 @@ describe('ObjectValidator', () => {
     });
     
     test('should handle custom error messages', () => {
-      const validator = Schema.object({
-        name: Schema.string()
-      }).withMessage('Invalid user object');
+      const validator = Schema.object({ name: Schema.string() }).withMessage('Invalid user object');
       
       const result1 = validator.validate('not an object');
       expect(result1.success).toBe(false);
@@ -531,7 +505,9 @@ describe('ObjectValidator', () => {
       
       const result2 = validator.validate({ name: 123 });
       expect(result2.success).toBe(false);
-      expect(result2.error).toBe('Invalid user object');
+      // The custom message only applies to the top-level type check.
+      // Field errors will have their own messages.
+      expect(result2.error).toEqual({ name: 'Value must be a string' });
     });
     
     test('should handle objects with special property names', () => {

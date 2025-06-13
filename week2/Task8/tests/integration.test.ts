@@ -210,7 +210,23 @@ describe('Integration Tests', () => {
     
     const result = schema.validate(invalidData);
     expect(result.success).toBe(false);
-    expect(result.error).toContain("Object field 'company'");
+    expect(result.error).toEqual({
+      company: {
+        info: {
+          name: 'String must be at least 2 characters long',
+          email: 'String does not match required pattern',
+          employees: {
+            '0': {
+              profile: {
+                skills: {
+                  '1': 'String must be at least 1 characters long'
+                }
+              }
+            }
+          }
+        }
+      }
+    });
   });
   
   test('should handle arrays of complex objects with validation', () => {

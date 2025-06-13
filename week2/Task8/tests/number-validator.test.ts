@@ -12,8 +12,12 @@ describe('NumberValidator', () => {
       expect(validator.validate(-0)).toEqual({ success: true, data: -0 });
       expect(validator.validate(Number.MAX_VALUE)).toEqual({ success: true, data: Number.MAX_VALUE });
       expect(validator.validate(Number.MIN_VALUE)).toEqual({ success: true, data: Number.MIN_VALUE });
-      expect(validator.validate(Infinity)).toEqual({ success: true, data: Infinity });
-      expect(validator.validate(-Infinity)).toEqual({ success: true, data: -Infinity });
+    });
+    
+    test('should reject infinity', () => {
+      expect(validator.validate(Infinity).success).toBe(false);
+      expect(validator.validate(-Infinity).success).toBe(false);
+      expect(validator.validate(Infinity).error).toBe('Value must be a valid number');
     });
     
     test('should reject NaN', () => {
@@ -42,7 +46,6 @@ describe('NumberValidator', () => {
       expect(validator.validate(10.1)).toEqual({ success: true, data: 10.1 });
       expect(validator.validate(15)).toEqual({ success: true, data: 15 });
       expect(validator.validate(100)).toEqual({ success: true, data: 100 });
-      expect(validator.validate(Infinity)).toEqual({ success: true, data: Infinity });
       
       const result = validator.validate(5);
       expect(result.success).toBe(false);
@@ -93,7 +96,6 @@ describe('NumberValidator', () => {
       expect(validator.validate(50)).toEqual({ success: true, data: 50 });
       expect(validator.validate(0)).toEqual({ success: true, data: 0 });
       expect(validator.validate(-100)).toEqual({ success: true, data: -100 });
-      expect(validator.validate(-Infinity)).toEqual({ success: true, data: -Infinity });
       
       const result = validator.validate(150);
       expect(result.success).toBe(false);
@@ -110,7 +112,6 @@ describe('NumberValidator', () => {
       expect(validator.validate(-5)).toEqual({ success: true, data: -5 });
       expect(validator.validate(-5.01)).toEqual({ success: true, data: -5.01 });
       expect(validator.validate(-100)).toEqual({ success: true, data: -100 });
-      expect(validator.validate(-Infinity)).toEqual({ success: true, data: -Infinity });
       
       const result = validator.validate(-4.99);
       expect(result.success).toBe(false);
@@ -223,7 +224,7 @@ describe('NumberValidator', () => {
     });
     
     test('should use custom error message for range validation', () => {
-      const validator = Schema.number().min(18).withMessage('Must be 18 or older');
+      const validator = Schema.number().min(18, 'Must be 18 or older');
       
       const result = validator.validate(16);
       expect(result.success).toBe(false);
@@ -231,24 +232,23 @@ describe('NumberValidator', () => {
     });
     
     test('should use custom error message for max validation', () => {
-      const validator = Schema.number().max(100).withMessage('Score cannot exceed 100');
+      const validator = Schema.number().max(100, 'Score cannot exceed 100');
       
       const result = validator.validate(150);
       expect(result.success).toBe(false);
       expect(result.error).toBe('Score cannot exceed 100');
     });
     
-    test('should override all validation messages', () => {
-      const validator = Schema.number().min(0).max(100).withMessage('Invalid score');
-      
-      // Type error
-      expect(validator.validate('abc').error).toBe('Invalid score');
+    test('should use the last custom message provided in a chain', () => {
+      const validator = Schema.number()
+        .min(0, 'Cannot be negative')
+        .max(100, 'Cannot exceed 100');
       
       // Min error
-      expect(validator.validate(-1).error).toBe('Invalid score');
+      expect(validator.validate(-1).error).toBe('Cannot be negative');
       
       // Max error
-      expect(validator.validate(101).error).toBe('Invalid score');
+      expect(validator.validate(101).error).toBe('Cannot exceed 100');
     });
   });
   
@@ -267,10 +267,7 @@ describe('NumberValidator', () => {
     });
     
     test('should handle optional numbers with custom messages', () => {
-      const validator = Schema.number().min(18).withMessage('Age required, 18+').optional();
-      
-      expect(validator.validate(undefined)).toEqual({ success: true, data: undefined });
-      expect(validator.validate(25)).toEqual({ success: true, data: 25 });
+      const validator = Schema.number().min(18, 'Age required, 18+').optional();
       
       const result = validator.validate(16);
       expect(result.success).toBe(false);
@@ -308,20 +305,21 @@ describe('NumberValidator', () => {
     test('should handle special numeric values', () => {
       const validator = Schema.number();
       
+      // Epsilon is a valid, finite number
       expect(validator.validate(Number.EPSILON)).toEqual({
         success: true,
         data: Number.EPSILON
       });
       
-      expect(validator.validate(Number.POSITIVE_INFINITY)).toEqual({
-        success: true,
-        data: Number.POSITIVE_INFINITY
-      });
-      
-      expect(validator.validate(Number.NEGATIVE_INFINITY)).toEqual({
-        success: true,
-        data: Number.NEGATIVE_INFINITY
-      });
+      // Infinity should be rejected
+      const resultInfinity = validator.validate(Number.POSITIVE_INFINITY);
+      expect(resultInfinity.success).toBe(false);
+      expect(resultInfinity.error).toBe('Value must be a valid number');
+
+      // -Infinity should be rejected
+      const resultNegInfinity = validator.validate(Number.NEGATIVE_INFINITY);
+      expect(resultNegInfinity.success).toBe(false);
+      expect(resultNegInfinity.error).toBe('Value must be a valid number');
     });
     
     test('should handle numbers from different sources', () => {

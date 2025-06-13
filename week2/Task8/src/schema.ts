@@ -1,439 +1,457 @@
 /**
- * Type-Safe Validation Library
- * 
- * A comprehensive validation library that provides type-safe validators for primitive types,
- * arrays, and objects with fluent API design and customizable error messages.
+ * @file A comprehensive, type-safe validation library for TypeScript.
+ * @author Your Name
+ * @version 2.0.0
+ *
+ * @description
+ * This library provides a set of powerful and flexible validators for common data types.
+ * It features a fluent, chainable API, immutable validator instances, and detailed, customizable
+ * error messages. The design emphasizes type safety, ensuring that if validation passes,
+ * the output is correctly typed.
+ *
+ * @example
+ * import { Schema } from './schema';
+ *
+ * const userSchema = Schema.object({
+ *   name: Schema.string().minLength(2, 'Name is too short.'),
+ *   email: Schema.string().pattern(/@/, 'Invalid email format.'),
+ *   age: Schema.number().min(18).optional(),
+ * });
+ *
+ * const result = userSchema.validate({ name: 'John', email: 'john@example.com' });
+ * if (result.success) {
+ *   console.log('Validated data:', result.data);
+ * } else {
+ *   console.error('Validation error:', result.error);
+ * }
  */
 
 /**
- * Base interface for all validators
+ * Base interface for all validators.
  */
-interface Validator<T> {
+export interface Validator<T> {
   validate(value: unknown): ValidationResult<T>;
-  optional(): OptionalValidator<T>;
+  optional(): Validator<T | undefined>;
+   /**
+   * @deprecated Provide custom messages directly to the rules (e.g., `minLength(5, 'Too short')`).
+   */
   withMessage(message: string): Validator<T>;
 }
 
 /**
- * Validation result type
+ * Describes the result of a validation.
+ * `success` is true if validation passed, false otherwise.
+ * `data` contains the validated and possibly transformed value on success.
+ * `error` contains a descriptive message or an object of errors on failure.
  */
-interface ValidationResult<T> {
+export interface ValidationResult<T> {
   success: boolean;
   data?: T;
-  error?: string;
+  error?: string | Record<string, any>;
 }
 
-/**
- * Optional validator wrapper
- */
-class OptionalValidator<T> implements Validator<T | undefined> {
-  constructor(private validator: Validator<T>) {}
+type ValidationRule<T> = (value: T) => { success: boolean; error?: string };
 
-  validate(value: unknown): ValidationResult<T | undefined> {
-    if (value === undefined || value === null) {
-      return { success: true, data: undefined };
+/**
+ * The base class for all validators. It provides the core logic for chaining rules
+ * and executing the validation process. Validators are immutable; each method call
+ * returns a new validator instance.
+ * @template T The type of the value to validate.
+ */
+abstract class BaseValidator<T> implements Validator<T> {
+  protected rules: ValidationRule<T>[] = [];
+  protected isOptional: boolean = false;
+  protected baseErrorMessage?: string;
+
+  constructor(other?: BaseValidator<T>) {
+    if (other) {
+      this.rules = [...other.rules];
+      this.isOptional = other.isOptional;
+      this.baseErrorMessage = other.baseErrorMessage;
     }
-    return this.validator.validate(value);
   }
 
-  optional(): OptionalValidator<T | undefined> {
-    return this;
+  /**
+   * Creates a new validator instance with the provided properties.
+   * This is used internally to maintain immutability.
+   * @protected
+   */
+  protected abstract clone(): BaseValidator<T>;
+
+  protected addRule(rule: ValidationRule<T>): this {
+    const newValidator = this.clone() as this;
+    newValidator.rules.push(rule);
+    return newValidator;
   }
 
-  withMessage(message: string): Validator<T | undefined> {
-    return new OptionalValidator(this.validator.withMessage(message));
+  /**
+   * Marks the schema as optional. If the input value is `null` or `undefined`,
+   * validation will pass and return `undefined`.
+   * @returns A new validator instance that allows optional values.
+   *
+   * @example
+   * const validator = Schema.string().optional();
+   * validator.validate(null).success; // true
+   * validator.validate(undefined).success; // true
+   */
+  optional(): Validator<T | undefined> {
+    const newValidator = this.clone() as BaseValidator<T | undefined>;
+    newValidator.isOptional = true;
+    
+    const originalValidate = newValidator.validate.bind(newValidator);
+    newValidator.validate = (value: unknown): ValidationResult<T | undefined> => {
+        if (value === null || value === undefined) {
+            return { success: true, data: undefined };
+        }
+        return originalValidate(value);
+    };
+
+    return newValidator;
   }
+
+  /**
+   * @deprecated This method is deprecated. Provide custom messages directly to the rules.
+   * @example
+   * // Deprecated
+   * Schema.string().minLength(5).withMessage('Must be 5 chars long.');
+   * // Preferred
+   * Schema.string().minLength(5, 'Must be 5 chars long.');
+   */
+  withMessage(message: string): this {
+    const newValidator = this.clone() as this;
+    // This message will be used for the base type check.
+    newValidator.baseErrorMessage = message;
+    return newValidator;
+  }
+  
+  /**
+   * Validates a value against the schema.
+   * @param value The value to validate.
+   * @returns A `ValidationResult` object.
+   */
+  validate(value: unknown): ValidationResult<T> {
+    const typeCheckResult = this.validateType(value);
+    if (!typeCheckResult.success) {
+      return typeCheckResult;
+    }
+
+    const typedValue = typeCheckResult.data as T;
+    for (const rule of this.rules) {
+      const result = rule(typedValue);
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+    }
+
+    return { success: true, data: typedValue };
+  }
+
+  /**
+   * Abstract method for checking the base type of the value.
+   * @param value The value to perform the type check on.
+   * @protected
+   */
+  protected abstract validateType(value: unknown): ValidationResult<T>;
 }
 
 /**
- * String validator with chainable methods for validation rules
+ * Validator for `string` values.
+ *
+ * @example
+ * const nameValidator = Schema.string()
+ *   .minLength(2, 'Name must be at least 2 characters.')
+ *   .maxLength(50, 'Name cannot exceed 50 characters.')
+ *   .pattern(/^[a-zA-Z]+$/, 'Name can only contain letters.');
  */
-class StringValidator implements Validator<string> {
-  private minLen?: number;
-  private maxLen?: number;
-  private regex?: RegExp;
-  private customMessage?: string;
+class StringValidator extends BaseValidator<string> {
 
-  /**
-   * Set minimum length requirement
-   * @param length Minimum length
-   * @returns StringValidator instance for chaining
-   */
-  minLength(length: number): StringValidator {
-    this.minLen = length;
-    return this;
+  protected clone(): BaseValidator<string> {
+    return new StringValidator(this);
   }
 
-  /**
-   * Set maximum length requirement
-   * @param length Maximum length
-   * @returns StringValidator instance for chaining
-   */
-  maxLength(length: number): StringValidator {
-    this.maxLen = length;
-    return this;
-  }
-
-  /**
-   * Set regex pattern requirement
-   * @param pattern Regular expression pattern
-   * @returns StringValidator instance for chaining
-   */
-  pattern(pattern: RegExp): StringValidator {
-    this.regex = pattern;
-    return this;
-  }
-
-  /**
-   * Set custom error message
-   * @param message Custom error message
-   * @returns StringValidator instance for chaining
-   */
-  withMessage(message: string): StringValidator {
-    this.customMessage = message;
-    return this;
-  }
-
-  /**
-   * Make this validator optional
-   * @returns OptionalValidator wrapper
-   */
-  optional(): OptionalValidator<string> {
-    return new OptionalValidator(this);
-  }
-
-  /**
-   * Validate a value against string rules
-   * @param value Value to validate
-   * @returns Validation result
-   */
-  validate(value: unknown): ValidationResult<string> {
+  protected validateType(value: unknown): ValidationResult<string> {
     if (typeof value !== 'string') {
-      return {
-        success: false,
-        error: this.customMessage || 'Value must be a string'
-      };
+      return { success: false, error: this.baseErrorMessage || 'Value must be a string' };
     }
-
-    if (this.minLen !== undefined && value.length < this.minLen) {
-      return {
-        success: false,
-        error: this.customMessage || `String must be at least ${this.minLen} characters long`
-      };
-    }
-
-    if (this.maxLen !== undefined && value.length > this.maxLen) {
-      return {
-        success: false,
-        error: this.customMessage || `String must be at most ${this.maxLen} characters long`
-      };
-    }
-
-    if (this.regex && !this.regex.test(value)) {
-      return {
-        success: false,
-        error: this.customMessage || 'String does not match required pattern'
-      };
-    }
-
     return { success: true, data: value };
+  }
+
+  /**
+   * Sets a minimum length for the string.
+   * @param length The minimum required length.
+   * @param message Optional custom error message.
+   * @returns A new `StringValidator` instance.
+   */
+  minLength(length: number, message?: string): this {
+    return this.addRule((value: string) => {
+      if (value.length < length) {
+        return { success: false, error: message || `String must be at least ${length} characters long` };
+      }
+      return { success: true };
+    });
+  }
+
+  /**
+   * Sets a maximum length for the string.
+   * @param length The maximum allowed length.
+   * @param message Optional custom error message.
+   * @returns A new `StringValidator` instance.
+   */
+  maxLength(length: number, message?: string): this {
+    return this.addRule((value: string) => {
+      if (value.length > length) {
+        return { success: false, error: message || `String must be at most ${length} characters long` };
+      }
+      return { success: true };
+    });
+  }
+
+  /**
+   * Requires the string to match a regular expression.
+   * @param pattern The `RegExp` to match against.
+   * @param message Optional custom error message.
+   * @returns A new `StringValidator` instance.
+   */
+  pattern(pattern: RegExp, message?: string): this {
+    return this.addRule((value: string) => {
+      if (!pattern.test(value)) {
+        return { success: false, error: message || 'String does not match required pattern' };
+      }
+      return { success: true };
+    });
   }
 }
 
 /**
- * Number validator with chainable methods for validation rules
+ * Validator for `number` values.
+ *
+ * @example
+ * const ageValidator = Schema.number()
+ *   .min(0, 'Age cannot be negative.')
+ *   .max(120, 'Age seems too high.');
  */
-class NumberValidator implements Validator<number> {
-  private minVal?: number;
-  private maxVal?: number;
-  private customMessage?: string;
-
-  /**
-   * Set minimum value requirement
-   * @param value Minimum value
-   * @returns NumberValidator instance for chaining
-   */
-  min(value: number): NumberValidator {
-    this.minVal = value;
-    return this;
+class NumberValidator extends BaseValidator<number> {
+  protected clone(): BaseValidator<number> {
+    return new NumberValidator(this);
   }
 
-  /**
-   * Set maximum value requirement
-   * @param value Maximum value
-   * @returns NumberValidator instance for chaining
-   */
-  max(value: number): NumberValidator {
-    this.maxVal = value;
-    return this;
-  }
-
-  /**
-   * Set custom error message
-   * @param message Custom error message
-   * @returns NumberValidator instance for chaining
-   */
-  withMessage(message: string): NumberValidator {
-    this.customMessage = message;
-    return this;
-  }
-
-  /**
-   * Make this validator optional
-   * @returns OptionalValidator wrapper
-   */
-  optional(): OptionalValidator<number> {
-    return new OptionalValidator(this);
-  }
-
-  /**
-   * Validate a value against number rules
-   * @param value Value to validate
-   * @returns Validation result
-   */
-  validate(value: unknown): ValidationResult<number> {
-    if (typeof value !== 'number' || isNaN(value)) {
-      return {
-        success: false,
-        error: this.customMessage || 'Value must be a valid number'
-      };
+  protected validateType(value: unknown): ValidationResult<number> {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return { success: false, error: this.baseErrorMessage || 'Value must be a valid number' };
     }
-
-    if (this.minVal !== undefined && value < this.minVal) {
-      return {
-        success: false,
-        error: this.customMessage || `Number must be at least ${this.minVal}`
-      };
-    }
-
-    if (this.maxVal !== undefined && value > this.maxVal) {
-      return {
-        success: false,
-        error: this.customMessage || `Number must be at most ${this.maxVal}`
-      };
-    }
-
     return { success: true, data: value };
+  }
+
+  /**
+   * Sets a minimum value for the number.
+   * @param value The minimum required value.
+   * @param message Optional custom error message.
+   * @returns A new `NumberValidator` instance.
+   */
+  min(value: number, message?: string): this {
+    return this.addRule((val: number) => {
+      if (val < value) {
+        return { success: false, error: message || `Number must be at least ${value}` };
+      }
+      return { success: true };
+    });
+  }
+
+  /**
+   * Sets a maximum value for the number.
+   * @param value The maximum allowed value.
+   * @param message Optional custom error message.
+   * @returns A new `NumberValidator` instance.
+   */
+  max(value: number, message?: string): this {
+    return this.addRule((val: number) => {
+      if (val > value) {
+        return { success: false, error: message || `Number must be at most ${value}` };
+      }
+      return { success: true };
+    });
   }
 }
 
 /**
- * Boolean validator
+ * Validator for `boolean` values.
+ *
+ * @example
+ * const isActiveValidator = Schema.boolean().withMessage('Must be a true or false value.');
  */
-class BooleanValidator implements Validator<boolean> {
-  private customMessage?: string;
-
-  /**
-   * Set custom error message
-   * @param message Custom error message
-   * @returns BooleanValidator instance for chaining
-   */
-  withMessage(message: string): BooleanValidator {
-    this.customMessage = message;
-    return this;
+class BooleanValidator extends BaseValidator<boolean> {
+  protected clone(): BaseValidator<boolean> {
+    return new BooleanValidator(this);
   }
 
-  /**
-   * Make this validator optional
-   * @returns OptionalValidator wrapper
-   */
-  optional(): OptionalValidator<boolean> {
-    return new OptionalValidator(this);
-  }
-
-  /**
-   * Validate a value as boolean
-   * @param value Value to validate
-   * @returns Validation result
-   */
-  validate(value: unknown): ValidationResult<boolean> {
+  protected validateType(value: unknown): ValidationResult<boolean> {
     if (typeof value !== 'boolean') {
-      return {
-        success: false,
-        error: this.customMessage || 'Value must be a boolean'
-      };
+      return { success: false, error: this.baseErrorMessage || 'Value must be a boolean' };
     }
-
     return { success: true, data: value };
   }
 }
 
 /**
- * Date validator
+ * Validator for `Date` objects. It can parse valid date strings into `Date` objects.
+ *
+ * @example
+ * const dateValidator = Schema.date()
+ *   .min(new Date('2023-01-01'), 'Date must be in 2023 or later.')
+ *   .max(new Date('2023-12-31'), 'Date must be in 2023.');
  */
-class DateValidator implements Validator<Date> {
-  private minDate?: Date;
-  private maxDate?: Date;
-  private customMessage?: string;
+class DateValidator extends BaseValidator<Date> {
+  private minDateVal?: { date: Date, message?: string };
+  private maxDateVal?: { date: Date, message?: string };
 
-  /**
-   * Set minimum date requirement
-   * @param date Minimum date
-   * @returns DateValidator instance for chaining
-   */
-  min(date: Date): DateValidator {
-    this.minDate = date;
-    return this;
+  constructor(other?: DateValidator) {
+    super(other);
+    if(other) {
+        this.minDateVal = other.minDateVal;
+        this.maxDateVal = other.maxDateVal;
+    }
   }
 
-  /**
-   * Set maximum date requirement
-   * @param date Maximum date
-   * @returns DateValidator instance for chaining
-   */
-  max(date: Date): DateValidator {
-    this.maxDate = date;
-    return this;
+  protected clone(): BaseValidator<Date> {
+    return new DateValidator(this);
   }
 
-  /**
-   * Set custom error message
-   * @param message Custom error message
-   * @returns DateValidator instance for chaining
-   */
-  withMessage(message: string): DateValidator {
-    this.customMessage = message;
-    return this;
+  protected validateType(value: unknown): ValidationResult<Date> {
+    if (value instanceof Date && !isNaN(value.getTime())) {
+      return { success: true, data: value };
+    }
+    if (typeof value === 'string') {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        return { success: true, data: date };
+      }
+    }
+    return { success: false, error: this.baseErrorMessage || 'Value must be a valid date' };
   }
-
+  
   /**
-   * Make this validator optional
-   * @returns OptionalValidator wrapper
+   * Sets a minimum date.
+   * @param date The minimum allowed date.
+   * @param message Optional custom error message.
+   * @returns A new `DateValidator` instance.
    */
-  optional(): OptionalValidator<Date> {
-    return new OptionalValidator(this);
+  min(date: Date, message?: string): this {
+    const newValidator = this.clone() as DateValidator;
+    newValidator.minDateVal = { date, message };
+
+    if (newValidator.maxDateVal && newValidator.maxDateVal.date < date) {
+        throw new Error('Min date cannot be after max date');
+    }
+
+    return newValidator.addRule((value: Date) => {
+        if (value < date) {
+            return { success: false, error: message || `Date must be after ${date.toISOString()}`};
+        }
+        return { success: true };
+    }) as this;
   }
-
+  
   /**
-   * Validate a value as Date
-   * @param value Value to validate
-   * @returns Validation result
+   * Sets a maximum date.
+   * @param date The maximum allowed date.
+   * @param message Optional custom error message.
+   * @returns A new `DateValidator` instance.
    */
-  validate(value: unknown): ValidationResult<Date> {
-    let date: Date;
+  max(date: Date, message?: string): this {
+    const newValidator = this.clone() as DateValidator;
+    newValidator.maxDateVal = { date, message };
     
-    // Only accept Date objects or strings
-    if (value instanceof Date) {
-      date = value;
-    } else if (typeof value === 'string') {
-      date = new Date(value);
-    } else {
-      return {
-        success: false,
-        error: this.customMessage || 'Value must be a valid date'
-      };
-    }
-    
-    if (isNaN(date.getTime())) {
-      return {
-        success: false,
-        error: this.customMessage || 'Value must be a valid date'
-      };
+    if (newValidator.minDateVal && newValidator.minDateVal.date > date) {
+        throw new Error('Min date cannot be after max date');
     }
 
-    if (this.minDate && date < this.minDate) {
-      return {
-        success: false,
-        error: this.customMessage || `Date must be after ${this.minDate.toISOString()}`
-      };
-    }
-
-    if (this.maxDate && date > this.maxDate) {
-      return {
-        success: false,
-        error: this.customMessage || `Date must be before ${this.maxDate.toISOString()}`
-      };
-    }
-
-    return { success: true, data: date };
+    return newValidator.addRule((value: Date) => {
+        if (value > date) {
+            return { success: false, error: message || `Date must be before ${date.toISOString()}`};
+        }
+        return { success: true };
+    }) as this;
   }
 }
 
 /**
- * Array validator for validating arrays with item validation
+ * Validator for arrays.
+ * @template T The type of the items in the array.
+ *
+ * @example
+ * const tagsValidator = Schema.array(Schema.string().maxLength(15))
+ *   .minLength(1, 'At least one tag is required.')
+ *   .maxLength(5, 'No more than 5 tags are allowed.');
  */
-class ArrayValidator<T> implements Validator<T[]> {
-  private minLen?: number;
-  private maxLen?: number;
-  private customMessage?: string;
-
-  constructor(private itemValidator: Validator<T>) {}
-
-  /**
-   * Set minimum length requirement
-   * @param length Minimum length
-   * @returns ArrayValidator instance for chaining
-   */
-  minLength(length: number): ArrayValidator<T> {
-    this.minLen = length;
-    return this;
+class ArrayValidator<T> extends BaseValidator<T[]> {
+  constructor(private itemValidator: Validator<T>, other?: ArrayValidator<T>) {
+    super(other);
   }
 
-  /**
-   * Set maximum length requirement
-   * @param length Maximum length
-   * @returns ArrayValidator instance for chaining
-   */
-  maxLength(length: number): ArrayValidator<T> {
-    this.maxLen = length;
-    return this;
+  protected clone(): BaseValidator<T[]> {
+    return new ArrayValidator<T>(this.itemValidator, this);
   }
-
-  /**
-   * Set custom error message
-   * @param message Custom error message
-   * @returns ArrayValidator instance for chaining
-   */
-  withMessage(message: string): ArrayValidator<T> {
-    this.customMessage = message;
-    return this;
-  }
-
-  /**
-   * Make this validator optional
-   * @returns OptionalValidator wrapper
-   */
-  optional(): OptionalValidator<T[]> {
-    return new OptionalValidator(this);
-  }
-
-  /**
-   * Validate an array and its items
-   * @param value Value to validate
-   * @returns Validation result
-   */
-  validate(value: unknown): ValidationResult<T[]> {
+  
+  protected validateType(value: unknown): ValidationResult<T[]> {
     if (!Array.isArray(value)) {
-      return {
-        success: false,
-        error: this.customMessage || 'Value must be an array'
-      };
+      return { success: false, error: this.baseErrorMessage || 'Value must be an array' };
     }
+    return { success: true, data: value };
+  }
 
-    if (this.minLen !== undefined && value.length < this.minLen) {
-      return {
-        success: false,
-        error: this.customMessage || `Array must have at least ${this.minLen} items`
-      };
-    }
+  /**
+   * Sets a minimum length for the array.
+   * @param length The minimum required length.
+   * @param message Optional custom error message.
+   * @returns A new `ArrayValidator` instance.
+   */
+  minLength(length: number, message?: string): this {
+      return this.addRule((value: T[]) => {
+          if (value.length < length) {
+              return { success: false, error: message || `Array must contain at least ${length} items` };
+          }
+          return { success: true };
+      });
+  }
 
-    if (this.maxLen !== undefined && value.length > this.maxLen) {
-      return {
-        success: false,
-        error: this.customMessage || `Array must have at most ${this.maxLen} items`
-      };
+  /**
+   * Sets a maximum length for the array.
+   * @param length The maximum allowed length.
+   * @param message Optional custom error message.
+   * @returns A new `ArrayValidator` instance.
+   */
+  maxLength(length: number, message?: string): this {
+      return this.addRule((value: T[]) => {
+          if (value.length > length) {
+              return { success: false, error: message || `Array must contain at most ${length} items` };
+          }
+          return { success: true };
+      });
+  }
+
+  validate(value: unknown): ValidationResult<T[]> {
+    const arrayResult = super.validate(value);
+    if (!arrayResult.success) {
+      return arrayResult;
     }
 
     const validatedItems: T[] = [];
-    for (let i = 0; i < value.length; i++) {
-      const itemResult = this.itemValidator.validate(value[i]);
-      if (!itemResult.success) {
-        return {
-          success: false,
-          error: this.customMessage || `Array item at index ${i}: ${itemResult.error}`
-        };
+    const errors: Record<number, string> = {};
+    let hasErrors = false;
+
+    for (let i = 0; i < (arrayResult.data as T[]).length; i++) {
+      const item = (arrayResult.data as T[])[i];
+      const itemResult = this.itemValidator.validate(item);
+      if (itemResult.success) {
+        validatedItems.push(itemResult.data as T);
+      } else {
+        hasErrors = true;
+        errors[i] = itemResult.error as string;
       }
-      validatedItems.push(itemResult.data!);
+    }
+
+    if (hasErrors) {
+      return { success: false, error: errors };
     }
 
     return { success: true, data: validatedItems };
@@ -441,58 +459,65 @@ class ArrayValidator<T> implements Validator<T[]> {
 }
 
 /**
- * Object validator for validating objects with schema
+ * Validator for `object` values.
+ * @template T The expected type of the object.
+ *
+ * @example
+ * interface User {
+ *   id: string;
+ *   name: string;
+ *   email?: string;
+ * }
+ *
+ * const userValidator = Schema.object<User>({
+ *   id: Schema.string(),
+ *   name: Schema.string().minLength(2),
+ *   email: Schema.string().pattern(/@/).optional(),
+ * });
  */
-class ObjectValidator<T> implements Validator<T> {
-  private customMessage?: string;
-
-  constructor(private schema: Record<string, Validator<any>>) {}
-
-  /**
-   * Set custom error message
-   * @param message Custom error message
-   * @returns ObjectValidator instance for chaining
-   */
-  withMessage(message: string): ObjectValidator<T> {
-    this.customMessage = message;
-    return this;
+class ObjectValidator<T> extends BaseValidator<T> {
+  constructor(private schema: Record<string, Validator<any>>, other?: ObjectValidator<T>) {
+    super(other);
   }
 
-  /**
-   * Make this validator optional
-   * @returns OptionalValidator wrapper
-   */
-  optional(): OptionalValidator<T> {
-    return new OptionalValidator(this);
+  protected clone(): BaseValidator<T> {
+    return new ObjectValidator<T>(this.schema, this);
   }
 
-  /**
-   * Validate an object against schema
-   * @param value Value to validate
-   * @returns Validation result
-   */
-  validate(value: unknown): ValidationResult<T> {
+  protected validateType(value: unknown): ValidationResult<T> {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-      return {
-        success: false,
-        error: this.customMessage || 'Value must be an object'
-      };
+        return { success: false, error: this.baseErrorMessage || 'Value must be an object' };
+    }
+    return { success: true, data: value as T };
+  }
+
+  validate(value: unknown): ValidationResult<T> {
+    const objectResult = super.validate(value);
+    if (!objectResult.success) {
+      return objectResult;
     }
 
-    const obj = value as Record<string, unknown>;
-    const validatedObject: Record<string, any> = {};
+    const validatedObject: Partial<T> = {};
+    const errors: Record<string, string> = {};
+    let hasErrors = false;
+    const obj = objectResult.data as Record<string, unknown>;
 
-    for (const [key, validator] of Object.entries(this.schema)) {
-      const fieldResult = validator.validate(obj[key]);
-      if (!fieldResult.success) {
-        return {
-          success: false,
-          error: this.customMessage || `Object field '${key}': ${fieldResult.error}`
-        };
+    for (const key in this.schema) {
+      const validator = this.schema[key];
+      const result = validator.validate(obj[key]);
+
+      if (result.success) {
+        if (result.data !== undefined) {
+          (validatedObject as any)[key] = result.data;
+        }
+      } else {
+        hasErrors = true;
+        errors[key] = result.error as string;
       }
-      if (fieldResult.data !== undefined) {
-        validatedObject[key] = fieldResult.data;
-      }
+    }
+
+    if (hasErrors) {
+      return { success: false, error: errors };
     }
 
     return { success: true, data: validatedObject as T };
@@ -500,147 +525,63 @@ class ObjectValidator<T> implements Validator<T> {
 }
 
 /**
- * Main Schema class providing static factory methods for creating validators
+ * The `Schema` class is the entry point for creating validators.
+ * It provides static methods for each validator type.
+ *
+ * @example
+ * const stringValidator = Schema.string();
+ * const numberValidator = Schema.number();
  */
-class Schema {
+export class Schema {
   /**
-   * Create a string validator
-   * @returns StringValidator instance
+   * Creates a new `StringValidator`.
+   * @returns A `StringValidator` instance.
    */
   static string(): StringValidator {
     return new StringValidator();
   }
 
   /**
-   * Create a number validator
-   * @returns NumberValidator instance
+   * Creates a new `NumberValidator`.
+   * @returns A `NumberValidator` instance.
    */
   static number(): NumberValidator {
     return new NumberValidator();
   }
 
   /**
-   * Create a boolean validator
-   * @returns BooleanValidator instance
+   * Creates a new `BooleanValidator`.
+   * @returns A `BooleanValidator` instance.
    */
   static boolean(): BooleanValidator {
     return new BooleanValidator();
   }
 
   /**
-   * Create a date validator
-   * @returns DateValidator instance
+   * Creates a new `DateValidator`.
+   * @returns A `DateValidator` instance.
    */
   static date(): DateValidator {
     return new DateValidator();
   }
 
   /**
-   * Create an object validator with schema
-   * @param schema Object schema defining field validators
-   * @returns ObjectValidator instance
+   * Creates a new `ObjectValidator`.
+   * @template T The expected type of the object.
+   * @param schema A schema definition where keys are property names and values are validators.
+   * @returns An `ObjectValidator` instance.
    */
-  static object<T>(schema: Record<string, Validator<any>>): ObjectValidator<T> {
-    return new ObjectValidator<T>(schema);
+  static object<T>(schema: { [K in keyof T]: Validator<T[K]> }): ObjectValidator<T> {
+    return new ObjectValidator<T>(schema as any);
   }
 
   /**
-   * Create an array validator
-   * @param itemValidator Validator for array items
-   * @returns ArrayValidator instance
+   * Creates a new `ArrayValidator`.
+   * @template T The type of items in the array.
+   * @param itemValidator A validator for the items in the array.
+   * @returns An `ArrayValidator` instance.
    */
   static array<T>(itemValidator: Validator<T>): ArrayValidator<T> {
-    return new ArrayValidator<T>(itemValidator);
+    return new ArrayValidator(itemValidator);
   }
-}
-
-// Export the main Schema class and types
-export { Schema, ValidationResult, Validator };
-
-// Example usage and demonstrations
-function runExamples() {
-  console.log('=== Type-Safe Validation Library Examples ===\n');
-
-  // Define a complex schema
-  const addressSchema = Schema.object({
-    street: Schema.string(),
-    city: Schema.string(),
-    postalCode: Schema.string().pattern(/^\d{5}$/).withMessage('Postal code must be 5 digits'),
-    country: Schema.string()
-  });
-
-  const userSchema = Schema.object({
-    id: Schema.string().withMessage('ID must be a string'),
-    name: Schema.string().minLength(2).maxLength(50),
-    email: Schema.string().pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
-    age: Schema.number().optional(),
-    isActive: Schema.boolean(),
-    tags: Schema.array(Schema.string()),
-    address: addressSchema.optional(),
-    metadata: Schema.object({}).optional()
-  });
-
-  // Test data
-  const validUserData = {
-    id: "12345",
-    name: "John Doe",
-    email: "john@example.com",
-    isActive: true,
-    tags: ["developer", "designer"],
-    address: {
-      street: "123 Main St",
-      city: "Anytown",
-      postalCode: "12345",
-      country: "USA"
-    }
-  };
-
-  const invalidUserData = {
-    id: 12345, // Should be string
-    name: "J", // Too short
-    email: "invalid-email", // Invalid format
-    isActive: "yes", // Should be boolean
-    tags: ["developer", 12345], // Array contains non-string
-    address: {
-      street: "123 Main St",
-      city: "Anytown",
-      postalCode: "1234", // Invalid postal code
-      country: "USA"
-    }
-  };
-
-  // Validate valid data
-  console.log('1. Validating valid user data:');
-  const validResult = userSchema.validate(validUserData);
-  console.log('Result:', validResult);
-  console.log('');
-
-  // Validate invalid data
-  console.log('2. Validating invalid user data:');
-  const invalidResult = userSchema.validate(invalidUserData);
-  console.log('Result:', invalidResult);
-  console.log('');
-
-  // Individual validator examples
-  console.log('3. Individual validator examples:');
-  
-  // String validator
-  const nameValidator = Schema.string().minLength(2).maxLength(10);
-  console.log('Name "John":', nameValidator.validate("John"));
-  console.log('Name "J":', nameValidator.validate("J"));
-  
-  // Number validator
-  const ageValidator = Schema.number().min(0).max(120);
-  console.log('Age 25:', ageValidator.validate(25));
-  console.log('Age -5:', ageValidator.validate(-5));
-  
-  // Array validator
-  const tagsValidator = Schema.array(Schema.string()).minLength(1);
-  console.log('Tags ["dev", "ui"]:', tagsValidator.validate(["dev", "ui"]));
-  console.log('Tags []:', tagsValidator.validate([]));
-  
-  console.log('\n=== Examples Complete ===');
-}
-
-// Run examples when this file is executed directly
-runExamples(); 
+} 
