@@ -1,4 +1,4 @@
-import { Schema } from '../src/schema';
+import { Schema } from '../src/index';
 
 describe('Type-Safe Validation Library', () => {
   // ==========================================

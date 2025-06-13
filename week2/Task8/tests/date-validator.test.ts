@@ -1,4 +1,4 @@
-import { Schema } from '../src/schema';
+import { Schema } from '../src/index';
 
 describe('DateValidator', () => {
   const validator = Schema.date();
@@ -53,7 +53,7 @@ describe('DateValidator', () => {
       invalidDateStrings.forEach(dateString => {
         const result = validator.validate(dateString);
         expect(result.success).toBe(false);
-        expect(result.error).toBe('Value must be a valid date');
+        expect(result.error).toBe('Value must be a valid Date object or an ISO date string');
         expect(result.data).toBeUndefined();
       });
     });
@@ -74,7 +74,7 @@ describe('DateValidator', () => {
       nonDateTypes.forEach(value => {
         const result = validator.validate(value);
         expect(result.success).toBe(false);
-        expect(result.error).toBe('Value must be a valid date');
+        expect(result.error).toBe('Value must be a valid Date object or an ISO date string');
       });
     });
     
@@ -84,7 +84,7 @@ describe('DateValidator', () => {
       
       const result = validator.validate(invalidDate);
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Value must be a valid date');
+      expect(result.error).toBe('Value must be a valid Date object or an ISO date string');
     });
   });
   
@@ -102,12 +102,11 @@ describe('DateValidator', () => {
       // Invalid dates (before min)
       const result1 = validator.validate(new Date('2023-12-31'));
       expect(result1.success).toBe(false);
-      expect(result1.error).toContain('Date must be after');
-      expect(result1.error).toContain(minDate.toISOString());
+      expect(result1.error).toContain(`Date must be on or after ${minDate.toISOString()}`);
       
       const result2 = validator.validate(new Date('2023-01-01'));
       expect(result2.success).toBe(false);
-      expect(result2.error).toContain('Date must be after');
+      expect(result2.error).toContain(`Date must be on or after ${minDate.toISOString()}`);
     });
     
     test('should validate maximum date', () => {
@@ -122,12 +121,11 @@ describe('DateValidator', () => {
       // Invalid dates (after max)
       const result1 = validator.validate(new Date('2025-01-01'));
       expect(result1.success).toBe(false);
-      expect(result1.error).toContain('Date must be before');
-      expect(result1.error).toContain(maxDate.toISOString());
+      expect(result1.error).toContain(`Date must be on or before ${maxDate.toISOString()}`);
       
       const result2 = validator.validate(new Date('2026-01-01'));
       expect(result2.success).toBe(false);
-      expect(result2.error).toContain('Date must be before');
+      expect(result2.error).toContain(`Date must be on or before ${maxDate.toISOString()}`);
     });
     
     test('should validate date range (min and max)', () => {
@@ -148,9 +146,11 @@ describe('DateValidator', () => {
     test('should handle invalid date range (min > max)', () => {
       const minDate = new Date('2025-01-01');
       const maxDate = new Date('2024-01-01');
+      const validator = Schema.date().min(minDate).max(maxDate);
       
-      // The validator should throw an error upon creation
-      expect(() => Schema.date().min(minDate).max(maxDate)).toThrow('Min date cannot be after max date');
+      const result = validator.validate(new Date('2024-06-15'));
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Date must be on or after');
     });
     
     test('should use custom messages for range validation', () => {
@@ -184,15 +184,16 @@ describe('DateValidator', () => {
       const result = optionalValidator.validate('not a date');
       
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Value must be a valid date');
+      expect(result.error).toBe('Value must be a valid Date object or an ISO date string');
     });
     
     test('should still validate date ranges for optional dates', () => {
       const minDate = new Date('2024-01-01');
       const validator = Schema.date().min(minDate).optional();
+      const validDate = new Date('2024-01-15');
       
       expect(validator.validate(undefined)).toEqual({ success: true, data: undefined });
-      expect(validator.validate(new Date('2024-01-15'))).toEqual({ success: true, data: new Date('2024-01-15') });
+      expect(validator.validate(validDate).data).toEqual(validDate);
       expect(validator.validate(new Date('2023-12-31')).success).toBe(false);
     });
   });

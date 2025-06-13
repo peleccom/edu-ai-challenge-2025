@@ -1,328 +1,183 @@
 # Type-Safe Validation Library
 
-A comprehensive TypeScript validation library that provides type-safe validators for primitive types, arrays, and objects with a fluent API design and customizable error messages.
+A comprehensive TypeScript validation library that provides type-safe validators for primitive types, arrays, and objects with a fluent API design and customizable error messages. This library is built with a modular structure, making it easy to extend and maintain.
 
 ## Features
 
-- ✅ **Type-Safe**: Full TypeScript support with proper type inference
-- 🔗 **Fluent API**: Chainable methods for building complex validators
-- 🎯 **Comprehensive**: Support for strings, numbers, booleans, dates, arrays, and objects
-- 🛡️ **Robust Error Handling**: Detailed error messages with custom message support
-- 📦 **Optional Fields**: Built-in support for optional validation
-- 🏗️ **Composable**: Build complex schemas from simple validators
+- ✅ **Type-Safe**: Full TypeScript support with proper type inference.
+- 🔗 **Fluent API**: Chainable methods for building complex validators.
+- 🧱 **Modular & Immutable**: Validators are immutable and organized into a clean, modular structure.
+- 🎯 **Comprehensive**: Support for `string`, `number`, `boolean`, `Date`, `Array`, and `Object`.
+- 🛡️ **Robust Error Handling**: Detailed, structured error messages with custom message support.
+- 📦 **Optional Fields**: Built-in support for optional validation at any level.
+- 🏗️ **Composable**: Build complex schemas from simple, reusable validators.
+
+## Project Structure
+
+The project is organized into the following directories:
+
+- `src/`: Contains the core library source code.
+  - `index.ts`: The main entry point for the library.
+  - `Schema.ts`: The main factory class for creating validators.
+  - `types.ts`: Shared types and interfaces.
+  - `validators/`: Directory for all validator classes.
+    - `BaseValidator.ts`: The abstract base class for all validators.
+    - `StringValidator.ts`, `NumberValidator.ts`, etc.
+- `tests/`: Contains all Jest test files.
+- `examples/`: Contains a usage example script.
+- `dist/`: The compiled JavaScript output.
 
 ## Installation
 
 ### Prerequisites
 
-- Node.js (version 14 or higher)
+- Node.js (v14 or higher)
 - npm or yarn
 
 ### Setup
 
-1. Clone or download the project files
-2. Install dependencies:
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd <project-directory>
+    ```
 
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+## How to Run
+
+### Run the Example
+
+To see the library in action, you can run the example script, which demonstrates various validation scenarios.
+
+**Command:**
 ```bash
-npm install
-```
-
-3. Build the TypeScript code:
-
-```bash
-npm run build
-```
-
-## Running the Application
-
-### Method 1: Run TypeScript directly (Recommended for development)
-
-```bash
-# Run examples with ts-node
 npm run example
 ```
 
-### Method 2: Build and run JavaScript
+This command uses `ts-node` to execute `examples/example.ts` directly, showcasing real-time validation results in your console.
 
-```bash
-# Build TypeScript to JavaScript
-npm run build
+**Expected Output:**
+```
+🔍 Type-Safe Validation Library - Usage Examples
 
-# Run the compiled JavaScript
-npm run compile
+1. String Validation:
+Valid name: { success: true, data: 'John Doe' }
+Invalid name: { success: false, error: 'String must be at least 2 characters long' }
+
+... and more examples
 ```
 
-### Method 3: Development mode
+### Build the Library
+
+To compile the TypeScript source code into JavaScript, run the build command. The output will be placed in the `dist/` directory.
 
 ```bash
-# Run with ts-node for development
-npm run dev
+npm run build
 ```
 
 ## Running Tests
 
-This library includes comprehensive Jest tests covering all validators and edge cases.
-
-### Prerequisites for Testing
-
-Install dependencies first:
-```bash
-npm install
-```
+This library includes a comprehensive Jest test suite covering all validators and edge cases.
 
 ### Test Commands
 
-```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode (re-runs on file changes)
-npm run test:watch
-
-# Run tests with coverage report
-npm run test:coverage
-
-# Run tests with coverage threshold check (quick summary)
-npm run test:coverage:check
-```
+-   **Run all tests once:**
+    ```bash
+    npm test
+    ```
+-   **Run tests in watch mode (re-runs on file changes):**
+    ```bash
+    npm run test:watch
+    ```
+-   **Run tests with a coverage report:**
+    ```bash
+    npm run test:coverage
+    ```
 
 ### Test Coverage
 
-The test suite includes:
+The project is configured to enforce a **minimum of 80% test coverage**. The test suite includes:
 
-- **StringValidator Tests** (`schema.test.ts`)
-  - Basic string validation
-  - Length constraints (minLength, maxLength)
-  - Pattern validation (regex)
-  - Custom error messages
-  - Method chaining
-  - Optional strings
+-   **Unit Tests** for each validator (`StringValidator`, `NumberValidator`, etc.).
+-   **Integration Tests** for complex, real-world schemas.
+-   **Edge Case Tests** for handling `null`, `undefined`, and other special values.
 
-- **NumberValidator Tests** (`number-validator.test.ts`)
-  - Basic number validation including NaN and Infinity handling
-  - Range validation (min, max)
-  - Edge cases with floating point precision
-  - Custom error messages
-  - Optional numbers
+## Usage
 
-- **BooleanValidator Tests** (in test files)
-  - Strict boolean validation
-  - Type rejection for truthy/falsy values
-  - Custom error messages
+To use the library, import the `Schema` factory class and create validator instances using its static methods.
 
-- **DateValidator Tests** (in test files)
-  - Date object and string validation
-  - Date range validation
-  - Invalid date handling
-
-- **ArrayValidator Tests** (`array-object.test.ts`)
-  - Array type validation
-  - Item validation with various types
-  - Length constraints
-  - Nested arrays
-  - Complex objects in arrays
-
-- **ObjectValidator Tests** (`array-object.test.ts`)
-  - Object structure validation
-  - Nested object validation
-  - Optional fields
-  - Schema validation
-  - Field type checking
-
-- **Integration Tests** (`integration.test.ts`)
-  - Real-world complex schemas
-  - E-commerce order validation
-  - User profile validation
-  - Configuration object validation
-  - Deeply nested structures
-
-- **Edge Cases**
-  - Circular references
-  - Large data sets
-  - Special numeric values
-  - Unicode strings
-  - Performance considerations
-
-### Sample Test Output
-
-When you run the tests, you'll see output like:
-
-```
-PASS schema.test.ts
-PASS number-validator.test.ts  
-PASS integration.test.ts
-
-Test Suites: 3 passed, 3 total
-Tests:       47 passed, 47 total
-Snapshots:   0 total
-Time:        2.345 s
-```
-
-### Coverage Report
-
-The project enforces a **minimum 80% coverage threshold** for all metrics. The test suite will fail if coverage drops below this threshold.
-
-Current coverage shows excellent results:
-- **Statements**: 98.48% coverage
-- **Branches**: 100% coverage of all conditional branches  
-- **Functions**: 95% coverage of all functions
-- **Lines**: 98.47% coverage
-
-Example coverage output:
-```
-File          | % Stmts | % Branch | % Funcs | % Lines
-schema.ts     |  98.48  |   100    |   95    |  98.47
-```
-
-### Coverage Thresholds
-
-The Jest configuration enforces minimum coverage thresholds:
-- **Statements**: 80% minimum
-- **Branches**: 80% minimum
-- **Functions**: 80% minimum
-- **Lines**: 80% minimum
-
-If coverage falls below these thresholds, the test suite will fail, ensuring code quality is maintained.
-
-## Usage Examples
-
-### Basic Primitive Validators
+### Basic Example
 
 ```typescript
-import { Schema } from './schema';
+import { Schema } from './src/index';
 
-// String validation
+// 1. Define a validator
 const nameValidator = Schema.string()
-  .minLength(2)
-  .maxLength(50)
-  .withMessage('Name must be between 2 and 50 characters');
+  .minLength(2, 'Name must be at least 2 characters.')
+  .maxLength(50, 'Name cannot exceed 50 characters.');
 
-const result = nameValidator.validate("John Doe");
-console.log(result); // { success: true, data: "John Doe" }
+// 2. Validate data
+const result = nameValidator.validate('John Doe');
 
-// Number validation
-const ageValidator = Schema.number()
-  .min(0)
-  .max(120);
-
-const ageResult = ageValidator.validate(25);
-console.log(ageResult); // { success: true, data: 25 }
-
-// Boolean validation
-const activeValidator = Schema.boolean();
-console.log(activeValidator.validate(true)); // { success: true, data: true }
-
-// Date validation
-const dateValidator = Schema.date()
-  .min(new Date('2020-01-01'))
-  .max(new Date('2030-12-31'));
+// 3. Check the result
+if (result.success) {
+  console.log('Validation successful:', result.data); // "John Doe"
+} else {
+  console.error('Validation failed:', result.error);
+}
 ```
 
-### String Validation with Patterns
+### Complex Object Validation
+
+You can easily compose validators to handle complex, nested data structures.
 
 ```typescript
-// Email validation
-const emailValidator = Schema.string()
-  .pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
-  .withMessage('Please enter a valid email address');
+const addressSchema = Schema.object({
+  street: Schema.string(),
+  city: Schema.string(),
+  zipCode: Schema.string().pattern(/^\d{5}$/, 'Must be a 5-digit ZIP code.'),
+});
 
-console.log(emailValidator.validate("user@example.com")); 
-// { success: true, data: "user@example.com" }
+const userSchema = Schema.object({
+  name: Schema.string().minLength(2),
+  email: Schema.string().pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
+  age: Schema.number().min(18).optional(),
+  address: addressSchema,
+});
 
-console.log(emailValidator.validate("invalid-email")); 
-// { success: false, error: "Please enter a valid email address" }
+const userData = {
+  name: 'Jane Doe',
+  email: 'jane.doe@example.com',
+  address: {
+    street: '123 Main St',
+    city: 'Anytown',
+    zipCode: '12345',
+  },
+};
 
-// Postal code validation
-const postalCodeValidator = Schema.string()
-  .pattern(/^\d{5}$/)
-  .withMessage('Postal code must be 5 digits');
+const validationResult = userSchema.validate(userData);
+console.log(validationResult);
+// { success: true, data: { ... } }
 ```
 
 ### Array Validation
 
-```typescript
-// Array of strings
-const tagsValidator = Schema.array(Schema.string())
-  .minLength(1)
-  .maxLength(5)
-  .withMessage('Must have 1-5 tags');
-
-console.log(tagsValidator.validate(["javascript", "typescript"]));
-// { success: true, data: ["javascript", "typescript"] }
-
-// Array of numbers
-const scoresValidator = Schema.array(
-  Schema.number().min(0).max(100)
-).minLength(3);
-```
-
-### Object Validation
+Validate arrays and ensure each item conforms to a specific schema.
 
 ```typescript
-// Simple object
-const addressSchema = Schema.object({
-  street: Schema.string(),
-  city: Schema.string(),
-  postalCode: Schema.string().pattern(/^\d{5}$/),
-  country: Schema.string()
-});
+const skillsValidator = Schema.array(
+    Schema.string().minLength(1)
+).minLength(1, 'At least one skill is required.');
 
-// Complex nested object
-const userSchema = Schema.object({
-  id: Schema.string(),
-  name: Schema.string().minLength(2).maxLength(50),
-  email: Schema.string().pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/),
-  age: Schema.number().optional(), // Optional field
-  isActive: Schema.boolean(),
-  tags: Schema.array(Schema.string()),
-  address: addressSchema.optional(), // Optional nested object
-  metadata: Schema.object({}).optional() // Optional empty object
-});
+const skillsData = ['TypeScript', 'Node.js', 'React'];
+const skillsResult = skillsValidator.validate(skillsData);
 
-const userData = {
-  id: "12345",
-  name: "John Doe",
-  email: "john@example.com",
-  isActive: true,
-  tags: ["developer", "designer"],
-  address: {
-    street: "123 Main St",
-    city: "Anytown",
-    postalCode: "12345",
-    country: "USA"
-  }
-};
-
-const result = userSchema.validate(userData);
-console.log(result.success); // true
-console.log(result.data); // Validated and typed data
-```
-
-### Optional Fields
-
-```typescript
-// Making validators optional
-const optionalEmailValidator = Schema.string()
-  .pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)
-  .optional();
-
-console.log(optionalEmailValidator.validate(undefined)); 
-// { success: true, data: undefined }
-
-console.log(optionalEmailValidator.validate("user@example.com")); 
-// { success: true, data: "user@example.com" }
-```
-
-### Custom Error Messages
-
-```typescript
-const passwordValidator = Schema.string()
-  .minLength(8)
-  .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-  .withMessage('Password must be at least 8 characters with uppercase, lowercase, and number');
-
-console.log(passwordValidator.validate("weak"));
-// { success: false, error: "Password must be at least 8 characters with uppercase, lowercase, and number" }
+console.log(skillsResult);
+// { success: true, data: [ 'TypeScript', 'Node.js', 'React' ] }
 ```
 
 ## API Reference

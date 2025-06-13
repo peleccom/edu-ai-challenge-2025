@@ -1,4 +1,4 @@
-import { Schema } from '../src/schema';
+import { Schema } from '../src/index';
 
 describe('Integration Tests', () => {
   test('should handle complex real-world user profile schema', () => {
@@ -211,21 +211,42 @@ describe('Integration Tests', () => {
     const result = schema.validate(invalidData);
     expect(result.success).toBe(false);
     expect(result.error).toEqual({
-      company: {
-        info: {
-          name: 'String must be at least 2 characters long',
-          email: 'String does not match required pattern',
-          employees: {
-            '0': {
-              profile: {
-                skills: {
-                  '1': 'String must be at least 1 characters long'
-                }
-              }
-            }
-          }
-        }
-      }
+      message: 'Object validation failed',
+      errors: {
+        company: {
+          message: 'Object validation failed',
+          errors: {
+            info: {
+              message: 'Object validation failed',
+              errors: {
+                name: 'String must be at least 2 characters long',
+                email: 'String does not match required pattern',
+                employees: {
+                  message: 'Array contains invalid items',
+                  errors: {
+                    '0': {
+                      message: 'Object validation failed',
+                      errors: {
+                        profile: {
+                          message: 'Object validation failed',
+                          errors: {
+                            skills: {
+                              message: 'Array contains invalid items',
+                              errors: {
+                                '1': 'String must be at least 1 characters long',
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
   });
   
