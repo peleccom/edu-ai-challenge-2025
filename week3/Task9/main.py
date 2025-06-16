@@ -11,9 +11,14 @@ MODEL_GPT_4_1_MINI = 'gpt-4.1-mini'
 SYSTEM_PROMPT = '''
 You are a helpful business analyst assistant.
 You will get service name or service description.
+If *Service Description:* was provided you should guess service name baseed on description.
+You write service name in output and analyse this service.
+"""
+{prompt}
+"""
 Based on the information provided, create a structured report with the following sections:
 
-{prompt}
+
 Return markdown-formatted multi-section analysis repor
 Your report must include:
 Brief History: Founding year, milestones, etc.
