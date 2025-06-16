@@ -48,10 +48,14 @@ def get_report(name: str|None, description: str|None) -> str:
     return response.choices[0].message.content.strip()
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate a market analysis report for a service or product.')
+    parser = argparse.ArgumentParser(
+        prog='Service Analyzer',
+        description='Generate a market analysis report for a service or product.')
 
-    parser.add_argument('-n', '--service-name', help='Name of the service or product')
-    parser.add_argument('-d', '--service-description', help='Description of the app/service')
+    group = parser.add_mutually_exclusive_group(required=True)
+
+    group.add_argument('-n', '--service-name', help='Name of the service or product')
+    group.add_argument('-d', '--service-description', help='Description of the app/service')
 
     args = parser.parse_args()
 
