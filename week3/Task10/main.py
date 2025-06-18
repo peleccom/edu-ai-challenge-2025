@@ -6,124 +6,127 @@ from openai import OpenAI
 load_dotenv()
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-
 MODEL_GPT_4_1_MINI = 'gpt-4.1-mini'
-FUNCTION_SCHEMA = [
-    {
-        'name': 'filter_products',
-        'description': 'Return a list of products that match the user request from the given product list.',
-        'parameters': {
-            'type': 'object',
-            'properties': {
-                'products': {
-                    'type': 'array',
-                    'items': {
-                        'type': 'object',
-                        'properties': {
-                            'name': {'type': 'string'},
-                            'category': {'type': 'string'},
-                            'price': {'type': 'number'},
-                            'rating': {'type': 'number'},
-                            'in_stock': {'type': 'boolean'}
-                        },
-                        'required': ['name', 'category', 'price', 'rating', 'in_stock']
-                    }
-                },
-                'user_request': {
-                    'type': 'string',
-                    'description': 'The user\'s product search preferences'
-                }
-            },
-            'required': ['products', 'user_request']
-        }
-    }
-]
+
+
+FUNCTION_SCHEMA1 = {
+    "type": "function",
+    "name": "filter_products",
+    "description": "Filter products based on user preferences.",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            'category': {'type': 'string'},
+            'min_price': {'type': 'number'},
+            'max_price': {'type': 'number'},
+            'min_rating': {'type': 'number'},
+            'max_rating': {'type': 'number'},
+            'in_stock': {'type': 'boolean'}
+        },
+        "required": ["category", "min_price", "max_price", "min_rating", "max_rating", "in_stock"],
+        "additionalProperties": False
+    },
+    "strict": True
+}
+
 
 def load_products():
     with open('products.json', 'r') as f:
         return json.load(f)
 
 def request_filtered_products(products, user_request):
-    response = client.chat.completions.create(
-        model=MODEL_GPT_4_1_MINI,
-        messages=[
+
+    input_messages = [
             {
                 'role': 'system',
-                'content': 'You are a product filtering assistant. You receive a list of products and a user request. Return only matching products.'
+                'content': '''
+                    You are a product filtering assistant. You should find information about products that match the user request.
+                    Filtering criteria can be:
+                    `
+                    Maximum price.
+                    Minimum rating.
+                    Specific product categories. Each request should contain at least one category from list (Electronics, Fitness, Kitchen, Books, Clothing)
+                    Stock availability.
+                    `
+                    The response should contain the filtered products in a structured format or message that we can't find products that match the request.                    Example Response:
+                    Filtered Products:
+                    1. Wireless Headphones - $99.99, Rating: 4.5, In Stock
+                    2. Smart Watch - $199.99, Rating: 4.6, In Stock
+                '''.strip()
             },
             {
                 'role': 'user',
-                'content': 'Find products based on this request: ' + user_request
+                'content': f'Find products based on this request: `{user_request}`'
             }
-        ],
-        tools=[
-            {
-                'type': 'function',
-                'function': {
-                    'name': 'filter_products',
-                    'description': 'Filter the product list by user preferences.',
-                    'parameters': {
-                        'type': 'object',
-                        'properties': {
-                            'products': {
-                                'type': 'array',
-                                'items': {
-                                    'type': 'object',
-                                    'properties': {
-                                        'name': {'type': 'string'},
-                                        'category': {'type': 'string'},
-                                        'price': {'type': 'number'},
-                                        'rating': {'type': 'number'},
-                                        'in_stock': {'type': 'boolean'}
-                                    },
-                                    'required': ['name', 'category', 'price', 'rating', 'in_stock']
-                                }
-                            },
-                            'user_request': {'type': 'string'}
-                        },
-                        'required': ['products', 'user_request']
-                    }
-                }
-            }
-        ],
-        tool_choice={'type': 'function', 'function': {'name': 'filter_products'}},
-        tool_inputs={
-            'filter_products': {
-                'products': products,
-                'user_request': user_request
-            }
-        }
+        ]
+
+    tools = [
+        FUNCTION_SCHEMA1
+    ]
+    response = client.responses.create(
+        model=MODEL_GPT_4_1_MINI,
+        input=input_messages,
+        tools=tools,
     )
 
-    tool_result = response.choices[0].message.tool_calls[0].function.arguments
-    parsed = json.loads(tool_result)
-    return parsed.get('filtered', [])
+
+    tool_call = response.output[0]
+    kwargs = json.loads(tool_call.arguments)
+    result = filter_products(products, **kwargs)
+
+    input_messages.append(tool_call)  # append model's function call message
+    input_messages.append({                               # append result message
+        "type": "function_call_output",
+        "call_id": tool_call.call_id,
+        "output": str(result)
+    })
+
+    response_2 = client.responses.create(
+        model=MODEL_GPT_4_1_MINI,
+        input=input_messages,
+        tools=tools,
+    )
+    return response_2.output_text
+
+
+def filter_products(products, category, min_price, max_price, min_rating, max_rating, in_stock):
+    ans = []
+    for product in products:
+        if category and product['category'] != category:
+            continue
+        if min_price and product['price'] < min_price:
+            continue
+        if max_price and product['price'] > max_price:
+            continue
+        if min_rating and product['rating'] < min_rating:
+            continue
+        if max_rating and product['rating'] > max_rating:
+            continue
+        if in_stock != product['in_stock']:
+            continue
+        ans.append(product)
+    return ans
+
+
+
 
 def print_products(products):
-    if not products:
-        print('No products found.')
-        return
-
-    print('\nFiltered Products:')
-    for i, p in enumerate(products, 1):
-        status = 'In Stock' if p['in_stock'] else 'Out of Stock'
-        print(f"{i}. {p['name']} - ${p['price']}, Rating: {p['rating']}, {status}")
+    print(products)
 
 def main():
     print('AI Product finder. Please type your query in natural language or "exit" to quit.')
     products = load_products()
-    while True:
-        user_input = input('Enter your product preferences: ')
-        if user_input.strip().lower() == 'exit':
-            break
+    user_input = input('Enter your product preferences: ')
+    if user_input.strip().lower() == 'exit':
+        return
 
-        products = load_products()
+    products = load_products()
 
-        try:
-            filtered_products = request_filtered_products(products, user_input)
-            print_products(filtered_products)
-        except Exception as e:
-            print(f'Error: {e}')
+    try:
+        filtered_products = request_filtered_products(products, user_input)
+        print_products(filtered_products)
+    except Exception as e:
+        print(f'Error: {e}')
 
 if __name__ == '__main__':
     main()

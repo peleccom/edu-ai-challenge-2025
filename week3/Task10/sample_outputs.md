@@ -1,0 +1,16 @@
+python main.py                                              12.000s
+AI Product finder. Please type your query in natural language or "exit" to quit.
+Enter your product preferences: Phone
+I couldn't find any products in the "Phone" category. Would you like to try searching for a different category or provide additional preferences like price range or rating?
+
+----
+
+python main.py
+AI Product finder. Please type your query in natural language or "exit" to quit.
+Enter your product preferences: Man clothes
+Filtered Products for Men's Clothes:
+1. Men's T-Shirt - $14.99, Rating: 4.2, In Stock
+2. Men's Jeans - $49.99, Rating: 4.1, In Stock
+3. Men's Shoes - $69.99, Rating: 4.3, In Stock
+4. Men's Hoodie - $34.99, Rating: 4.6, In Stock
+5. Men's Socks - $9.99, Rating: 4.1, In Stock
