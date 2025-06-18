@@ -14,3 +14,23 @@ Filtered Products for Men's Clothes:
 3. Men's Shoes - $69.99, Rating: 4.3, In Stock
 4. Men's Hoodie - $34.99, Rating: 4.6, In Stock
 5. Men's Socks - $9.99, Rating: 4.1, In Stock
+
+
+---
+
+python main.py
+AI Product finder. Please type your query in natural language or "exit" to quit.
+Enter your product preferences: Headphones with rating >= 4
+Filtered Products (Headphones with rating >= 4):
+1. Wireless Headphones - $99.99, Rating: 4.5, In Stock
+2. Noise-Cancelling Headphones - $299.99, Rating: 4.8, In Stock
+
+
+----
+python main.py                                                        25.000s
+AI Product finder. Please type your query in natural language or "exit" to quit.
+Enter your product preferences: Headphones for less than 100$
+Filtered Products matching your request for headphones under $100:
+1. Wireless Headphones - $99.99, Rating: 4.5, In Stock
+
+(Note: Other electronic products under $100 were found but they are not headphones.

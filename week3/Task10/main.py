@@ -74,8 +74,8 @@ def request_filtered_products(products, user_request):
     kwargs = json.loads(tool_call.arguments)
     result = filter_products(products, **kwargs)
 
-    input_messages.append(tool_call)  # append model's function call message
-    input_messages.append({                               # append result message
+    input_messages.append(tool_call)
+    input_messages.append({
         "type": "function_call_output",
         "call_id": tool_call.call_id,
         "output": str(result)
