@@ -27,10 +27,23 @@ Filtered Products (Headphones with rating >= 4):
 
 
 ----
-python main.py                                                        25.000s
+python main.py
 AI Product finder. Please type your query in natural language or "exit" to quit.
 Enter your product preferences: Headphones for less than 100$
 Filtered Products matching your request for headphones under $100:
 1. Wireless Headphones - $99.99, Rating: 4.5, In Stock
 
 (Note: Other electronic products under $100 were found but they are not headphones.
+
+
+---
+python main.py
+AI Product finder. Please type your query in natural language or "exit" to quit.
+Enter your product preferences: Any product which is out of stock but less than 1000 dollars
+Filtered Products that are out of stock and less than $1000:
+1. Smartphone - $799.99, Rating: 4.5, Out of Stock
+2. Treadmill - $899.99, Rating: 4.6, Out of Stock
+3. Microwave Oven - $129.99, Rating: 4.5, Out of Stock
+4. Dishwasher - $549.99, Rating: 4.6, Out of Stock
+5. Refrigerator - $999.99, Rating: 4.8, Out of Stock
+6. Women's Jacket - $79.99, Rating: 4.5, Out of Stock
