@@ -9,7 +9,10 @@ from core.utils import minutes_to_readable, srt_to_text
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Transcribe and analyze an audio file.")
+    parser = argparse.ArgumentParser(
+        prog="Audio Analyzer",
+        description="Transcribe and analyze an audio file.",
+    )
     parser.add_argument("audio_file", help="Path to the audio file to analyze.")
     args = parser.parse_args()
 

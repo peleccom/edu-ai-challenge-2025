@@ -10,7 +10,7 @@ def summarize_text(text):
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that summarizes text. " +
                  "Focus on preserving core intent and main takeaways." +
-                 "Use markdown format for the summary." +
+                 "Use markdown format for the summary formatting.." +
                  "Use the language of the text for the summary." ,
                  },
                 {"role": "user", "content": f"Please summarize the following text, use the language of the text:\n\n```{text}```"}
