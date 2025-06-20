@@ -24,11 +24,6 @@ A command-line application that generates a business analysis report for a produ
 
 1. Clone this repository:
 
-```bash
-git clone https://github.com/yourname/service-analyzer-cli.git
-cd service-analyzer-cli
-````
-
 2. Create and activate a virtual environment (optional but recommended):
 
 ```bash
