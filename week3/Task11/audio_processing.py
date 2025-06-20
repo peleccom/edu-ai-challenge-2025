@@ -1,28 +1,9 @@
 import io
 import math
 import os
-import tempfile
-from pathlib import Path
 from mutagen import File
 from pydub import AudioSegment
-from .audio_analysis import get_audio_transcription
-from .config import MAX_CHUNK_SIZE, OPENAI_SUPPORTED_FORMATS
-
-def ensure_supported_format(file_path: Path) -> Path:
-    """Checks if the audio file format is supported and converts it to MP3 if not."""
-    if file_path.suffix.lower().strip('.') in OPENAI_SUPPORTED_FORMATS:
-        return file_path
-
-    print(f"Unsupported format '{file_path.suffix}'. Converting to MP3...")
-    try:
-        audio = AudioSegment.from_file(file_path)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_file:
-            audio.export(temp_file.name, format="mp3")
-            print(f"Converted to temporary file: {temp_file.name}")
-            return Path(temp_file.name)
-    except Exception as e:
-        print(f"Error during conversion: {e}")
-        raise
+from config import client, MODEL_WHISPER_1, MAX_CHUNK_SIZE
 
 def get_file_size_bytes(file_path):
     """Returns the file size in bytes."""
@@ -33,9 +14,9 @@ def get_chunk_duration_ms(audio: AudioSegment, max_chunk_size_bytes: int = MAX_C
     bytes_per_ms = len(audio.raw_data) / len(audio)  # bytes / ms
     return int(max_chunk_size_bytes / bytes_per_ms)
 
-def transcribe_large_audio(file_path):
-    """Transcribe file with size more than 25 MB"""
-    print(f'Transcribing audio: {file_path}')
+def translate_large_audio(file_path):
+    """Translate file with size more than 25 MB"""
+    print(f'Translating audio: {file_path}')
 
     # Load audio
     audio = AudioSegment.from_file(file_path)
@@ -58,8 +39,12 @@ def transcribe_large_audio(file_path):
         buffer.seek(0)
 
         try:
-            transcription = get_audio_transcription(buffer)
-            print(f'Chunk {i + 1}/{total_chunks} transcribed.')
+            transcription = client.audio.translations.create(
+                model=MODEL_WHISPER_1,
+                file=buffer,
+                response_format="srt"
+            )
+            print(f'Chunk {i + 1}/{total_chunks} translated.')
             full_transcription += transcription + '\n'
         except Exception as e:
             print(f'Error in chunk {i + 1}: {e}')
@@ -69,26 +54,22 @@ def transcribe_large_audio(file_path):
 
 def transcribe_audio(file_path):
     """Transcribes the given audio file using OpenAI's Whisper model."""
-    processed_file_path = ensure_supported_format(file_path)
-
+    audio_file_size = get_file_size_bytes(file_path)
+    if audio_file_size >= MAX_CHUNK_SIZE:
+        return translate_large_audio(file_path)
+    print(f"Transcribing {file_path}...")
     try:
-        audio_file_size = get_file_size_bytes(processed_file_path)
-        if audio_file_size >= MAX_CHUNK_SIZE:
-            return transcribe_large_audio(processed_file_path)
-
-        print(f"Transcribing {processed_file_path}...")
-        with open(processed_file_path, "rb") as audio_file:
-            transcription = get_audio_transcription(audio_file)
+        with open(file_path, "rb") as audio_file:
+            transcription = client.audio.transcriptions.create(
+                model=MODEL_WHISPER_1,
+                file=audio_file,
+                response_format="srt"
+            )
         print('Transcription completed.')
         return transcription
     except Exception as e:
         print(f"Error during transcription: {e}")
         return None
-    finally:
-        # Clean up the temporary file if it was created
-        if processed_file_path != file_path:
-            os.remove(processed_file_path)
-            print(f"Removed temporary file: {processed_file_path}")
 
 def get_audio_duration__ffmpeg(file_path):
     """Gets the duration of an audio file in minutes."""
@@ -110,4 +91,4 @@ def get_audio_duration(file_path):
             return get_audio_duration__ffmpeg(file_path)
         except Exception as e1:
             print(f"Error getting audio duration: {e}")
-            return None
+            return None 
