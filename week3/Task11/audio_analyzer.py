@@ -27,6 +27,8 @@ def main():
     if srt_transcript is None:
         return
 
+    transcript = srt_to_text(srt_transcript)
+
     # Create results directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     results_dir = Path("results") / timestamp
@@ -38,7 +40,7 @@ def main():
         f.write(srt_transcript)
     print(f"Transcription saved to {transcription_filename}")
 
-    summary = summarize_text(srt_to_text(srt_transcript))
+    summary = summarize_text(transcript)
     if summary:
         print("\n--- Summary ---")
         print(summary)
@@ -47,7 +49,7 @@ def main():
             f.write(summary)
         print(f"Summary saved to {summary_filename}")
 
-    analysis = analyze_text(srt_transcript, duration_minutes)
+    analysis = analyze_text(transcript, duration_minutes)
     if analysis:
         print("\n--- Analysis ---")
         print(json.dumps(analysis, indent=2, ensure_ascii=False))

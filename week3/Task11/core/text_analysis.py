@@ -27,18 +27,14 @@ def analyze_text(text, duration_minutes):
     print("Analyzing text for key insights...")
     word_count = len(text.split())
 
-    if duration_minutes > 0:
-        wpm = round(word_count / duration_minutes)
-    else:
-        wpm = 0
-
     prompt = f"""
-    Based on the following transcript, provide a JSON object with:
-    1. The total word count.
+    Based on the following transcript in triple quotes, provide a JSON object with:
+    1. The total word count in transcript text.
     2. The speaking speed in words per minute (WPM).
     3. A list of the top 3-5 frequently mentioned topics, with a mention count for each.
 
     The speaking duration was {duration_minutes:.2f} minutes.
+    Word count in text is {word_count}.
 
     Transcript:
     ```{text}```
@@ -64,10 +60,7 @@ def analyze_text(text, duration_minutes):
             response_format={ "type": "json_object" }
         )
         analysis_json = json.loads(response.choices[0].message.content)
-        # Ensure calculated values are in the final JSON, as GPT might recalculate differently
-        analysis_json['word_count'] = word_count
-        analysis_json['speaking_speed_wpm'] = wpm
         return analysis_json
     except Exception as e:
         print(f"Error during analysis: {e}")
-        return None 
+        return None

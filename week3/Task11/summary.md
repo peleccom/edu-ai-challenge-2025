@@ -1,5 +1,11 @@
-### Summary
-
-A 25-year-old engineering student with no significant past medical history presents with sharp chest pain lasting a few seconds, starting three days ago, mainly over the heart and sometimes radiating to the neck. The pain worsens with coughing and lying down but improves when leaning forward. There are no associated symptoms like shortness of breath, dizziness, palpitations, fever, or recent injuries. The patient recently recovered from the flu. There is a family history of heart disease, as his father died of a heart attack two weeks ago. The patient occasionally drinks alcohol but does not smoke or use recreational drugs.
-
-The clinician plans to perform an ECG and possibly blood tests to evaluate the heart and reassures the patient to avoid excessive worry until test results are available.
+- Patient presents with sharp chest pain, worried about a heart attack.
+- Pain started 3 days ago, lasts a few seconds, sharp, located over the heart, sometimes radiates to neck.
+- Worse when coughing or lying down, improves leaning forward.
+- No other symptoms like shortness of breath, dizziness, palpitations, or systemic symptoms currently.
+- Had flu symptoms last week (fever, runny nose, cough, fatigue).
+- No recent injuries, no previous similar episodes.
+- Healthy 25-year-old, no medical conditions, no medications except occasional Tylenol which helps pain.
+- Family history: father had a heart attack two weeks ago and died.
+- Patient is a student and part-time postman, occasional alcohol use, no smoking or drug use.
+- Plan: perform ECG and possibly blood tests to evaluate heart function.
+- Advised patient not to worry excessively while awaiting test results.

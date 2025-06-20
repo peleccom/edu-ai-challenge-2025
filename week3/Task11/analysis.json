@@ -1,26 +1,26 @@
 {
-  "word_count": 1192,
-  "speaking_speed_wpm": 160,
+  "word_count": 968,
+  "speaking_speed_wpm": 130,
   "frequently_mentioned_topics": [
     {
       "topic": "pain",
-      "mentions": 12
+      "mentions": 20
     },
     {
       "topic": "heart attack",
-      "mentions": 8
-    },
-    {
-      "topic": "symptoms",
-      "mentions": 7
-    },
-    {
-      "topic": "chest",
       "mentions": 6
     },
     {
-      "topic": "medical history",
+      "topic": "chest",
       "mentions": 5
+    },
+    {
+      "topic": "symptoms",
+      "mentions": 5
+    },
+    {
+      "topic": "medications",
+      "mentions": 3
     }
   ]
 }
