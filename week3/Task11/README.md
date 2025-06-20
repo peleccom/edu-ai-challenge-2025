@@ -20,8 +20,9 @@ This console application transcribes a given audio file, provides a summary of t
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository-url>
-    cd <repository-folder>
+    git clone git@github.com:peleccom/edu-ai-challenge-2025.git
+    cd edu-ai-challenge-2025
+    cd week3/Task11
     ```
 
 2.  **Install dependencies:**
@@ -34,6 +35,16 @@ This console application transcribes a given audio file, provides a summary of t
     ```bash
     pip install -r requirements.txt
     ```
+
+    For some file formats you'll need ffmpeg or libav.
+
+    # ffmpeg
+
+    Mac:
+    brew install ffmpeg
+
+    Linux:
+    apt-get install ffmpeg libavcodec-extra
 
 ## Configuration
 
@@ -58,7 +69,7 @@ python audio_analyzer.py /path/to/your/audio.mp3
 ### Output
 
 -   The **summary and analysis** will be printed to the console.
--   A new **transcription file** (e.g., `transcription_20231027_103000.md`) will be created in the project directory for each run.
+-   A new  `analysis.json`, `summary.md`, `transcription.md` files will be created in the project `results/{timestamp}` directory for each run.
 
 ---
 *This project is for educational purposes as part of the EDU AI Challenge.*

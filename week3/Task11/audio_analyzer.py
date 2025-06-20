@@ -1,17 +1,23 @@
-import openai
 import os
 import json
 import argparse
 from datetime import datetime
+from pathlib import Path
 from dotenv import load_dotenv
 from mutagen import File
 from openai import OpenAI
+from pydub import AudioSegment
 
 MODEL_GPT_4_1_MINI = 'gpt-4.1-mini'
 MODEL_WHISPER_1 = 'whisper-1'
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+def minutes_to_readable(minutes_float):
+    minutes = int(minutes_float)
+    seconds = round((minutes_float - minutes) * 60)
+    return f'{minutes} min {seconds} sec'
 
 def transcribe_audio(file_path):
     """Transcribes the given audio file using OpenAI's Whisper model."""
@@ -20,9 +26,11 @@ def transcribe_audio(file_path):
         with open(file_path, "rb") as audio_file:
             transcription = client.audio.transcriptions.create(
                 model=MODEL_WHISPER_1,
-                file=audio_file
+                file=audio_file,
+                response_format="srt"
             )
-        return transcription.text
+        print('Transcription completed.')
+        return transcription
     except Exception as e:
         print(f"Error during transcription: {e}")
         return None
@@ -32,6 +40,19 @@ def get_audio_duration(file_path):
     try:
         audio = File(file_path)
         return audio.info.length / 60  # Duration in minutes
+    except Exception as e:
+        print('Failed to get audio duration using mutagen. Trying pydub...')
+        try:
+            return get_audio_duration__ffmpeg(file_path)
+        except Exception as e1:
+            print(f"Error getting audio duration: {e}")
+            return None
+
+def get_audio_duration__ffmpeg(file_path):
+    """Gets the duration of an audio file in minutes."""
+    try:
+        audio = AudioSegment.from_file(file_path)
+        return len(audio) / (1000 * 60) # Duration in minutes
     except Exception as e:
         print(f"Error getting audio duration: {e}")
         return None
@@ -43,10 +64,15 @@ def summarize_text(text):
         response = client.chat.completions.create(
             model=MODEL_GPT_4_1_MINI,
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that summarizes text. Focus on preserving core intent and main takeaways."},
-                {"role": "user", "content": f"Please summarize the following text:\n\n```{text}```"}
+                {"role": "system", "content": "You are a helpful assistant that summarizes text. " +
+                "Focus on preserving core intent and main takeaways." +
+                "Use markdown format for the summary." +
+                "Use the language of the text for the summary." ,
+                },
+                {"role": "user", "content": f"Please summarize the following text, use the language of the text:\n\n```{text}```"}
             ]
         )
+        print('Summarization completed.')
         return response.choices[0].message.content
     except Exception as e:
         print(f"Error during summarization: {e}")
@@ -107,21 +133,26 @@ def main():
     parser.add_argument("audio_file", help="Path to the audio file to analyze.")
     args = parser.parse_args()
 
-    if not os.path.exists(args.audio_file):
-        print(f"Error: File not found at {args.audio_file}")
+    audio_file_path = Path(args.audio_file)
+    if not audio_file_path.exists():
+        print(f"Error: File not found at {audio_file_path}")
         return
 
-    duration_minutes = get_audio_duration(args.audio_file)
+    duration_minutes = get_audio_duration(audio_file_path)
     if duration_minutes is None:
         return
-
-    transcript = transcribe_audio(args.audio_file)
+    print(f'Audio duration: {minutes_to_readable(duration_minutes)}')
+    transcript = transcribe_audio(audio_file_path)
     if transcript is None:
         return
 
-    # Save transcription to a file
+    # Create results directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    transcription_filename = f"transcription_{timestamp}.md"
+    results_dir = Path("results") / timestamp
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save transcription to a file
+    transcription_filename = results_dir / "transcription.md"
     with open(transcription_filename, "w") as f:
         f.write(transcript)
     print(f"Transcription saved to {transcription_filename}")
@@ -130,12 +161,19 @@ def main():
     if summary:
         print("\n--- Summary ---")
         print(summary)
+        summary_filename = results_dir / "summary.md"
+        with open(summary_filename, "w") as f:
+            f.write(summary)
+        print(f"Summary saved to {summary_filename}")
 
     analysis = analyze_text(transcript, duration_minutes)
     if analysis:
         print("\n--- Analysis ---")
-        print(json.dumps(analysis, indent=2))
+        print(json.dumps(analysis, indent=2, ensure_ascii=False))
+        analysis_filename = results_dir / "analysis.json"
+        with open(analysis_filename, "w", encoding="utf-8") as f:
+            json.dump(analysis, f, indent=2, ensure_ascii=False)
+        print(f"Analysis saved to {analysis_filename}")
 
 if __name__ == "__main__":
-    load_dotenv()
     main()
