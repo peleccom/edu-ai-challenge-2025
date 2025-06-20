@@ -17,7 +17,7 @@ A command-line application that generates a business analysis report for a produ
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.11+
 - OpenAI API Key
 
 ## Setup
@@ -42,7 +42,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file with your OpenAI key:
+4. Copy `.env.example` to `.env` file with and fill your OpenAI key:
 
 ```
 OPENAI_API_KEY=your_openai_api_key_here
